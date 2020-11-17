@@ -35,10 +35,23 @@ public class TopicGenerator {
     }
 
     public List<Topic> getTopics() {
+        log.info("Generating topics...");
         Set<String> topics = new HashSet<>();
+        double sizef = Math.pow(config.getNumTopics(), .10);
+        int idLength = (int) Math.round(sizef) + 1;
+        String idFormat = String.format("T%%0%dd", idLength);
+
         for (int i = 0; i < config.getNumTopics(); i++) {
-            String id = String.format("T%07d", i);
+            String id = String.format(idFormat, i);
             Topic topic = generateTopic(id);
+
+            if (i % 10_000 == 0) {
+                System.out.print('.');
+                if (i % 1_000_000 == 0) {
+                    System.out.println();
+                }
+            }
+
             if (!topics.contains(topic.getTopicString())) {
                 topics.add(topic.getTopicString());
                 topicHash.put(id, topic);
@@ -47,7 +60,12 @@ public class TopicGenerator {
                 }
             }
         }
-        log.info("{} topics generated.", topicHash.size());
+
+        if (config.getNumTopics() >= 10_000) {
+            System.out.println();
+        }
+
+        log.info("{} distinct topics generated.", topicHash.size());
         return topicHash.values().stream().collect(Collectors.toList());
     }
 

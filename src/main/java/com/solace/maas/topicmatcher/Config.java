@@ -7,8 +7,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("topicmatcher")
 public class Config {
 
+    private double chanceOfStar = 0.3;
     private int maxLevels = 6;
-    private int numTopics = 20; //10_000_000;
+    private int numTopics = 20; // 10_000_000;
     private int vocabularySize = 6;
 
     public int getMaxLevels() {
