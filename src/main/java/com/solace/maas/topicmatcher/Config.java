@@ -7,10 +7,15 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("topicmatcher")
 public class Config {
 
+    private double chanceOfGT = 0.3;
     private double chanceOfStar = 0.3;
     private int maxLevels = 6;
-    private int numTopics = 20; // 10_000_000;
+    private int numTopics = 200; // 10_000_000;
     private int vocabularySize = 6;
+
+    public double getChanceOfGT() { return chanceOfGT; }
+
+    public double getChanceOfStar() { return chanceOfStar; }
 
     public int getMaxLevels() {
         return maxLevels;

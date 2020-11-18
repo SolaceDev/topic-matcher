@@ -5,21 +5,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
 public class TopicAnalyzer {
 
-    private Logger log = LoggerFactory.getLogger(TopicAnalyzer.class);
-
     List<Map<String, List<Pair<String, Integer>>>> maps = new ArrayList();
     List<String> allTopics = new ArrayList<>();
+    private final Logger log = LoggerFactory.getLogger(TopicAnalyzer.class);
 
     public void analyze(List<Topic> topics) {
         allTopics.clear();
@@ -47,13 +41,14 @@ public class TopicAnalyzer {
         }
     }
 
-    public List<String> match(String topic) {
+    public List<String> matchFromSubscriber(String topic) {
+        log.debug("Match from subscriber: {}", topic);
         Set<Pair<String, Integer>> matching = new HashSet();
         String[] levels = topic.split("/");
         for (int i = 0; i < levels.length; i++) {
             String levelToMatch = levels[i];
-            log.debug("Level to match: {} {}", i, levelToMatch);
             boolean isLeafNode = i == levels.length - 1;
+            log.debug("Level to match: {} {} leaf: {}", i, levelToMatch, isLeafNode);
             final int lev = i; // for use in lamdas
 
             // Special case: match all
@@ -87,7 +82,7 @@ public class TopicAnalyzer {
                 // some.
 
                 if (isLeafNode) {
-                    matchingTopicsAtThisLevel.removeIf( p -> p.getRight() > lev + 1);
+                    matchingTopicsAtThisLevel.removeIf(p -> p.getRight() > lev + 1);
                 }
 
                 Set<Pair<String, Integer>> matchingAtThisLevel =
@@ -98,9 +93,9 @@ public class TopicAnalyzer {
                 } else {
                     //Set<String> existingTopics = matching.stream().map( p -> p.getLeft()).collect(Collectors.toSet());
                     Set<String> topicsThisLevel =
-                            matchingAtThisLevel.stream().map( p -> p.getLeft()).collect(Collectors.toSet());
+                            matchingAtThisLevel.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
                     //existingTopics.
-                    matching.removeIf( p -> !topicsThisLevel.contains(p.getLeft()));
+                    matching.removeIf(p -> !topicsThisLevel.contains(p.getLeft()));
                 }
                 log.debug("Resulting set: {}", matching);
             }
@@ -109,8 +104,94 @@ public class TopicAnalyzer {
         return matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
     }
 
+    public List<String> matchFromPublisher(String topic) {
+        log.debug("Match from publisher: {}", topic);
+        final Set<Pair<String, Integer>> matching = new HashSet();
+        final List<Pair<String, Integer>> matchingGts = new ArrayList();
+        String[] levels = topic.split("/");
+
+        for (int i = 0; i < levels.length; i++) {
+            String levelToMatch = levels[i];
+            boolean isLeafNode = i == levels.length - 1;
+            log.debug("Level to match: {} {} leaf: {}", i, levelToMatch, isLeafNode);
+            final int lev = i; // for use in lamdas which need i to be final.
+
+            if (maps.size() <= i) {
+                // No topics are as long as this one. No matches.
+                matching.clear();
+                break;
+            }
+
+            List<Pair<String, Integer>> gtsAtThisLevel = maps.get(i).get(">");
+            log.debug("matching gts: " + gtsAtThisLevel);
+
+            // If there is a > at the 0 level, always add it.
+            // Otherwise only add it if the higher levels of the topic already matched.
+            if (gtsAtThisLevel != null) {
+                if (i > 0) {
+                    // Cloning so we can remove some.
+                    gtsAtThisLevel = new ArrayList<>(gtsAtThisLevel);
+                    gtsAtThisLevel.removeIf(p -> !matching.contains(p));
+                    log.debug("matching gts after filtering: {}", gtsAtThisLevel);
+                }
+                matchingGts.addAll(gtsAtThisLevel);
+            }
+
+            List<Pair<String, Integer>> matchingTopicsAtThisLevel = maps.get(i).get(levelToMatch);
+            if (matchingTopicsAtThisLevel == null) {
+                matchingTopicsAtThisLevel = new ArrayList<>();
+            }
+
+            List<Pair<String, Integer>> starsAtThisLevel = maps.get(i).get("*");
+
+            if (starsAtThisLevel != null) {
+                matchingTopicsAtThisLevel.addAll(starsAtThisLevel);
+            }
+
+            if (matchingTopicsAtThisLevel == null) {
+                log.debug("No matches at this level.");
+                matching.clear();
+                break;
+            }
+
+
+            if (isLeafNode) {
+                // Cloning so we can remove some.
+                matchingTopicsAtThisLevel = new ArrayList<>(matchingTopicsAtThisLevel);
+                matchingTopicsAtThisLevel.removeIf(p -> p.getRight() > lev + 1);
+            }
+
+            Set<Pair<String, Integer>> matchingAtThisLevel =
+                    matchingTopicsAtThisLevel.stream().collect(Collectors.toSet());
+            log.debug("current set: {} matching at this level: {}", matching, matchingAtThisLevel);
+            if (i == 0) {
+                matching.addAll(matchingAtThisLevel);
+            } else {
+                //Set<String> existingTopics = matching.stream().map( p -> p.getLeft()).collect(Collectors.toSet());
+                Set<String> topicsThisLevel =
+                        matchingAtThisLevel.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
+                //existingTopics.
+                matching.removeIf(p -> !topicsThisLevel.contains(p.getLeft()));
+            }
+            log.debug("Resulting set: {}", matching);
+        }
+
+        List<String> ret = matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
+        log.debug("Final gts: {}", matchingGts);
+        ret.addAll(matchingGts.stream().map(p -> p.getLeft()).collect(Collectors.toList()));
+        return ret;
+    }
+
+    public List<String> match(PubOrSub pubOrSub, String topic) {
+        if (pubOrSub == PubOrSub.pub) {
+            return matchFromPublisher(topic);
+        } else {
+            return matchFromSubscriber(topic);
+        }
+    }
+
     public void dump() {
-        log.info("dump: nodes:");
+        log.info("dump:");
         for (int i = 0; i < maps.size(); i++) {
             log.info("\tlevel {}", i);
             Map<String, List<Pair<String, Integer>>> map = maps.get(i);
