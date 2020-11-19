@@ -22,7 +22,7 @@ public class TopicAnalyzer {
         for (Topic topic : topics) {
             allTopicStrings.add(topic.getTopicString());
             topicIdToTopicString.put(topic.getId(), topic.getTopicString());
-            int numLevels = topic.getLevels();
+            int numLevels = topic.getNumLevels();
             for (int level = 0; level < numLevels; level++) {
                 String levelString = topic.getLevel(level);
 
@@ -39,7 +39,7 @@ public class TopicAnalyzer {
                     listOfTopics = new ArrayList<>();
                     matchingTopicsAtThisLevel.put(levelString, listOfTopics);
                 }
-                listOfTopics.add(Pair.of(topic.getId(), topic.getLevels()));
+                listOfTopics.add(Pair.of(topic.getId(), topic.getNumLevels()));
             }
         }
     }

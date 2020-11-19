@@ -17,16 +17,18 @@ public class TopicService {
     @Autowired
     TopicGenerator topicGenerator;
 
-    //@Autowired
-    //TopicRepository topicRepository;
-
     private TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
     private TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
 
     @PostConstruct
     public void init() {
-        publisherAnalyzer.analyze(topicGenerator.getPublisherTopics());
-        subscriberAnalyzer.analyze(topicGenerator.getSubscriberTopics());
+
+        if (config.isLargeDataSet()) {
+            publisherAnalyzer.analyze(topicGenerator.getPublisherTopics());
+            subscriberAnalyzer.analyze(topicGenerator.getSubscriberTopics());
+        } else {
+            // Generate the applications.
+        }
     }
 
     public List<String> getMatches(PubOrSub pubOrSub, String topicString) {

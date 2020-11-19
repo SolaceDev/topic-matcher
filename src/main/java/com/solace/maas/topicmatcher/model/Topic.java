@@ -6,13 +6,13 @@ import java.util.List;
 
 public class Topic {
     private String id;
-    private int levels;
+    private int numLevels;
     private String topicString;
     private List<String> topicLevels = new ArrayList();
 
-    public Topic(String id, int levels, String topicString, List<String> topicLevels) {
+    public Topic(String id, int numLevels, String topicString, List<String> topicLevels) {
         this.id = id;
-        this.levels = levels;
+        this.numLevels = numLevels;
         this.topicString = topicString;
         this.topicLevels = topicLevels;
     }
@@ -22,7 +22,7 @@ public class Topic {
         this.topicString = topicString;
 
         String[] levs = topicString.split("/");
-        this.levels = levs.length;
+        this.numLevels = levs.length;
         this.topicLevels = Arrays.asList(levs);
     }
 
@@ -34,7 +34,7 @@ public class Topic {
         return topicLevels.get(level);
     }
 
-    public int getLevels() { return levels; }
+    public int getNumLevels() { return numLevels; }
 
     public String getTopicString() {
         return topicString;
@@ -44,7 +44,7 @@ public class Topic {
     public String toString() {
         return "Topic{" +
                 "id='" + id + '\'' +
-                ", levels='" + levels + '\'' +
+                ", levels='" + numLevels + '\'' +
                 ", topicString='" + topicString + '\'' +
                 '}';
     }
