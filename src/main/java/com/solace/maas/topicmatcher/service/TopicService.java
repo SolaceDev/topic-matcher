@@ -1,11 +1,12 @@
-package com.solace.maas.topicmatcher;
+package com.solace.maas.topicmatcher.service;
 
+import com.solace.maas.topicmatcher.Config;
+import com.solace.maas.topicmatcher.PubOrSub;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class TopicService {

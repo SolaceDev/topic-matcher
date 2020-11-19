@@ -1,5 +1,8 @@
-package com.solace.maas.topicmatcher;
+package com.solace.maas.topicmatcher.service;
 
+import com.solace.maas.topicmatcher.Config;
+import com.solace.maas.topicmatcher.PubOrSub;
+import com.solace.maas.topicmatcher.model.Topic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

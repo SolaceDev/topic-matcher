@@ -1,5 +1,7 @@
-package com.solace.maas.topicmatcher;
+package com.solace.maas.topicmatcher.service;
 
+import com.solace.maas.topicmatcher.PubOrSub;
+import com.solace.maas.topicmatcher.model.Topic;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

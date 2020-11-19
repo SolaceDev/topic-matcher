@@ -1,4 +1,4 @@
-package com.solace.maas.topicmatcher;
+package com.solace.maas.topicmatcher.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -1,5 +1,6 @@
 package com.solace.maas.topicmatcher;
 
+import com.solace.maas.topicmatcher.service.TopicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,14 +10,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @SpringBootApplication
-public class Application implements ApplicationRunner {
+public class Main implements ApplicationRunner {
 
-    private Logger log = LoggerFactory.getLogger(Application.class);
+    private Logger log = LoggerFactory.getLogger(Main.class);
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(Main.class, args);
     }
 
 //    @Autowired
