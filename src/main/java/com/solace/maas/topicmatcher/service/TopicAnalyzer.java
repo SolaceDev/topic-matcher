@@ -11,10 +11,10 @@ import java.util.stream.Collectors;
 
 public class TopicAnalyzer {
 
+    private final Logger log = LoggerFactory.getLogger(TopicAnalyzer.class);
     private List<Map<String, List<Pair<String, Integer>>>> maps = new ArrayList();
     private List<String> allTopicStrings = new ArrayList<>();
     private Map<String, String> topicIdToTopicString = new HashMap<>();
-    private final Logger log = LoggerFactory.getLogger(TopicAnalyzer.class);
 
     public void analyze(List<Topic> topics) {
         allTopicStrings.clear();

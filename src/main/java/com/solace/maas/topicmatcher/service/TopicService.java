@@ -31,6 +31,8 @@ public class TopicService {
     @PostConstruct
     public void init() {
 
+        log.info("init: largeDataSet: {}", config.isLargeDataSet());
+
         if (config.isLargeDataSet()) {
             publisherAnalyzer.analyze(topicGenerator.getPublisherTopics());
             subscriberAnalyzer.analyze(topicGenerator.getSubscriberTopics());
