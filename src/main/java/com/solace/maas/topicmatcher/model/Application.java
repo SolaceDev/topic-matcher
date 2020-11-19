@@ -1,12 +1,13 @@
 package com.solace.maas.topicmatcher.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Application {
 
     private String name;
-    private List<String> subscriptions;
-    private List<String> publishingTopics;
+    private List<String> subscribingTopics = new ArrayList<>();
+    private List<String> publishingTopics = new ArrayList<>();
 
     public String getName() {
         return name;
@@ -16,12 +17,12 @@ public class Application {
         this.name = name;
     }
 
-    public List<String> getSubscriptions() {
-        return subscriptions;
+    public List<String> getSubscribingTopics() {
+        return subscribingTopics;
     }
 
-    public void setSubscriptions(List<String> subscriptions) {
-        this.subscriptions = subscriptions;
+    public void setSubscribingTopics(List<String> subscribingTopics) {
+        this.subscribingTopics = subscribingTopics;
     }
 
     public List<String> getPublishingTopics() {
@@ -30,5 +31,22 @@ public class Application {
 
     public void setPublishingTopics(List<String> publishingTopics) {
         this.publishingTopics = publishingTopics;
+    }
+
+    public void addPublishingTopic(String topicString) {
+        publishingTopics.add(topicString);
+    }
+
+    public void addSubscribingTopic(String topicString) {
+        subscribingTopics.add(topicString);
+    }
+
+    @Override
+    public String toString() {
+        return "Application{" +
+                "name='" + name + '\'' +
+                ", subscribingTopics=" + subscribingTopics +
+                ", publishingTopics=" + publishingTopics +
+                '}';
     }
 }
