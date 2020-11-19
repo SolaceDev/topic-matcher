@@ -60,7 +60,8 @@ public class TopicGenerator {
     private Topic generateTopic(PubOrSub pub_or_sub, String id) {
         stringBuilder.delete(0, stringBuilder.length());
         List<String> topicLevels = new ArrayList<>();
-        int levels = 1 + (int) (Math.random() * (config.getMaxLevels()));
+        int levels =
+                config.getMinLevels() + (int) (Math.random() * (config.getMaxLevels() - config.getMinLevels() + 1));
 
         for (int level = 0; level < levels; level++) {
             char c = ' '; // to be replaced soon.

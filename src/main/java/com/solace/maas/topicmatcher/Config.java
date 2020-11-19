@@ -8,8 +8,9 @@ import org.springframework.stereotype.Component;
 public class Config {
 
     private double appToTopicRatio = 0.3; // chance that an app will be assigned a particular topic
-    private double chanceOfGT = 0.3;  // Chance that a leaf node on a subscription will be >
-    private double chanceOfStar = 0.3; // Chance that a level on a subscription will be a *
+    private double chanceOfGT = 0.5;  // Chance that a leaf node on a subscription will be >
+    private double chanceOfStar = 0.4; // Chance that a level on a subscription will be a *
+    private int minLevels = 3;
     private int maxLevels = 6;
     private int numApplications = 20;
     private int numTopics = 40;
@@ -41,6 +42,10 @@ public class Config {
     public void setMaxLevels(int maxLevels) {
         this.maxLevels = maxLevels;
     }
+
+    public int getMinLevels() { return minLevels; }
+
+    public void setMinLevels(int minLevels) { this.minLevels = minLevels; }
 
     public int getNumTopics() {
         return numTopics;

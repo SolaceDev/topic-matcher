@@ -8,6 +8,7 @@ public class Application {
     private String name;
     private List<String> subscribingTopics = new ArrayList<>();
     private List<String> publishingTopics = new ArrayList<>();
+    private List<String> topicsMatchingSubscriptions = new ArrayList<>();
 
     public String getName() {
         return name;
@@ -41,12 +42,21 @@ public class Application {
         subscribingTopics.add(topicString);
     }
 
+    public List<String> getTopicsMatchingSubscriptions() {
+        return topicsMatchingSubscriptions;
+    }
+
+    public void setTopicsMatchingSubscriptions(List<String> topicsMatchingSubscriptions) {
+        this.topicsMatchingSubscriptions = topicsMatchingSubscriptions;
+    }
+
     @Override
     public String toString() {
         return "Application{" +
                 "name='" + name + '\'' +
-                ", subscribingTopics=" + subscribingTopics +
                 ", publishingTopics=" + publishingTopics +
+                ", subscribingTopics=" + subscribingTopics +
+                ", topicsMatchingSubscriptions=" + topicsMatchingSubscriptions +
                 '}';
     }
 }

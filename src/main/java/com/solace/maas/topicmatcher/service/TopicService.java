@@ -10,8 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class TopicService {
@@ -27,17 +27,23 @@ public class TopicService {
     private TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
     private TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
     private List<Application> applications = new ArrayList<>();
+    private Map<String, Application> applicationsById = new HashMap<>();
+    private Map<String, List<Application>> subscribingTopicToApplications = new HashMap<>();
+    private Map<String, List<Application>> publishingTopicToApplications = new HashMap<>();
+    private Map<String, List<String>> topicsMatchingSubscriptions = new HashMap<>();
 
     @PostConstruct
     public void init() {
 
         log.info("init: largeDataSet: {}", config.isLargeDataSet());
+        applications.clear();
+        applicationsById.clear();
+        topicsMatchingSubscriptions.clear();
 
         if (config.isLargeDataSet()) {
             publisherAnalyzer.analyze(topicGenerator.getPublisherTopics());
             subscriberAnalyzer.analyze(topicGenerator.getSubscriberTopics());
         } else {
-            applications.clear();
             // Generate the applications.
             List<Topic> publisherTopics = topicGenerator.getPublisherTopics();
             List<Topic> subscriberTopics = topicGenerator.getSubscriberTopics();
@@ -54,20 +60,45 @@ public class TopicService {
 
             for (int i = 0; i < config.getNumApplications(); i++) {
                 Application application = new Application();
-                application.setName(String.format(idFormat, i));
+                String name = String.format(idFormat, i);
+                application.setName(name);
                 applications.add(application);
+                applicationsById.put(name, application);
+                Set<String> matchingTopics = new HashSet<>();
 
                 for (Topic pub : publisherTopics) {
                     if (Math.random() < config.getAppToTopicRatio()) {
                         application.addPublishingTopic(pub.getTopicString());
+                        List<Application> appsForThisTopic = publishingTopicToApplications.get(pub.getTopicString());
+                        if (appsForThisTopic == null) {
+                            appsForThisTopic = new ArrayList<>();
+                            publishingTopicToApplications.put(pub.getTopicString(), appsForThisTopic);
+                        }
+                        appsForThisTopic.add(application);
                     }
                 }
                 for (Topic sub : subscriberTopics) {
                     if (Math.random() < config.getAppToTopicRatio()) {
                         application.addSubscribingTopic(sub.getTopicString());
+                        List<Application> appsForThisTopic = subscribingTopicToApplications.get(sub.getTopicString());
+                        if (appsForThisTopic == null) {
+                            appsForThisTopic = new ArrayList<>();
+                            subscribingTopicToApplications.put(sub.getTopicString(), appsForThisTopic);
+                        }
+                        appsForThisTopic.add(application);
+
+                        // Find the matching published topics
+                        List<String> matchingForThisSub = topicsMatchingSubscriptions.get(sub.getTopicString());
+                        if (matchingForThisSub == null) {
+                            matchingForThisSub = publisherAnalyzer.matchFromSubscriber(sub.getTopicString());
+                            topicsMatchingSubscriptions.put(sub.getTopicString(), matchingForThisSub);
+                        }
+
+                        matchingTopics.addAll(matchingForThisSub); // next: store in app field.
                     }
                 }
 
+                application.setTopicsMatchingSubscriptions(matchingTopics.stream().collect(Collectors.toList()));
                 log.debug("Generated app {}", application);
             }
         }
@@ -89,4 +120,11 @@ public class TopicService {
         return subscriberAnalyzer.matchFromPublisher(publisher);
     }
 
+    public List<Application> getApplications() {
+        return applications;
+    }
+
+    public Application getApplication(String name) {
+        return applicationsById.get(name);
+    }
 }
