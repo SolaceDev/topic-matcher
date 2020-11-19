@@ -19,31 +19,34 @@ public class Application implements ApplicationRunner {
         SpringApplication.run(Application.class, args);
     }
 
-    @Autowired
-    Config config;
+//    @Autowired
+//    Config config;
+//    @Autowired
+//    TopicGenerator topicGenerator;
+//    @Autowired
+//    TopicRepository topicRepository;
+
 
     @Autowired
-    TopicGenerator topicGenerator;
-
-    @Autowired
-    TopicAnalyzer topicAnalyzer;
+    TopicService topicService;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
         testPublisherToSubscriber();
-        //testSubscriberToPublisher();
+        testSubscriberToPublisher();
     }
 
     private void testPublisherToSubscriber() {
-        List<Topic> topics = topicGenerator.getSubscriberTopics();
-        //List<Topic> topics = topicGenerator.getKnownTopics();
-        log.info("Analysis started.");
-        topicAnalyzer.analyze(topics);
-        log.info("Analysis finished.");
-
-        if (config.getNumTopics() <= 20) {
-            topicAnalyzer.dump();
-        }
+        log.info("Matching publisher to subscribers");
+//        List<Topic> topics = topicRepository.getSubscriberTopics();
+//        //List<Topic> topics = topicGenerator.getKnownTopics();
+//        log.info("Analysis started.");
+//        subscriberAnalyzer.analyze(topics);
+//        log.info("Analysis finished.");
+//
+//        if (config.getNumTopics() <= 20) {
+//            subscriberAnalyzer.dump();
+//        }
 
         doSearch(PubOrSub.pub, "A");
         doSearch(PubOrSub.pub,"A/A");
@@ -55,15 +58,16 @@ public class Application implements ApplicationRunner {
     }
 
     private void testSubscriberToPublisher() {
-        List<Topic> topics = topicGenerator.getPublisherTopics();
-        //List<Topic> topics = topicGenerator.getKnownTopics();
-        log.info("Analysis started.");
-        topicAnalyzer.analyze(topics);
-        log.info("Analysis finished.");
-
-        if (config.getNumTopics() <= 20) {
-            topicAnalyzer.dump();
-        }
+        log.info("Matching subscriber to publishers");
+//        List<Topic> topics = topicRepository.getPublisherTopics();
+//        //List<Topic> topics = topicGenerator.getKnownTopics();
+//        log.info("Analysis started.");
+//        publisherAnalyzer.analyze(topics);
+//        log.info("Analysis finished.");
+//
+//        if (config.getNumTopics() <= 20) {
+//            publisherAnalyzer.dump();
+//        }
 
         doSearch( PubOrSub.sub, "A");
         doSearch( PubOrSub.sub, "A/*");
@@ -75,11 +79,9 @@ public class Application implements ApplicationRunner {
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {
-        List<String> matchingTopics = topicAnalyzer.match(pubOrSub, searchTopic);
 
-        if (true || config.getNumTopics() <= 20)
-            matchingTopics = matchingTopics.stream().map( id -> topicGenerator.getTopicString(id)).collect(
-                Collectors.toList());
+        List<String> matchingTopics = topicService.getMatches(pubOrSub, searchTopic);
+
         if (matchingTopics.size() > 20) {
             log.info(String.format("Search: %16s matches: %s", searchTopic, matchingTopics.size()));
         } else {

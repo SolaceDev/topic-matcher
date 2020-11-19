@@ -3,22 +3,23 @@ package com.solace.maas.topicmatcher;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Component
 public class TopicAnalyzer {
 
-    List<Map<String, List<Pair<String, Integer>>>> maps = new ArrayList();
-    List<String> allTopics = new ArrayList<>();
+    private List<Map<String, List<Pair<String, Integer>>>> maps = new ArrayList();
+    private List<String> allTopicStrings = new ArrayList<>();
+    private Map<String, String> topicIdToTopicString = new HashMap<>();
     private final Logger log = LoggerFactory.getLogger(TopicAnalyzer.class);
 
     public void analyze(List<Topic> topics) {
-        allTopics.clear();
+        allTopicStrings.clear();
+        topicIdToTopicString.clear();
         for (Topic topic : topics) {
-            allTopics.add(topic.getId());
+            allTopicStrings.add(topic.getTopicString());
+            topicIdToTopicString.put(topic.getId(), topic.getTopicString());
             int numLevels = topic.getLevels();
             for (int level = 0; level < numLevels; level++) {
                 String levelString = topic.getLevel(level);
@@ -54,17 +55,19 @@ public class TopicAnalyzer {
             // Special case: match all
             if (levelToMatch.equals(">")) {
                 if (i == 0) {
-                    return allTopics;
+                    return allTopicStrings;
                 } else {
-                    return matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
+                    break; // return matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
                 }
             }
 
             if (levelToMatch.equals("*")) {
                 // If it's a leaf node, return the current set where it ends at this level.
                 if (isLeafNode) {
-                    return matching.stream().filter(p -> p.getRight() == lev + 1).map(p -> p.getLeft()).collect(
-                            Collectors.toList());
+                    matching.removeIf(p -> p.getRight() > lev + 1);
+                    break;
+//                    return matching.stream().filter(p -> p.getRight() == lev + 1).map(p -> p.getLeft()).collect(
+//                            Collectors.toList());
                 }
                 // else nothing changes in our set of matches.
             } else {
@@ -91,17 +94,17 @@ public class TopicAnalyzer {
                 if (i == 0) {
                     matching = matchingAtThisLevel;
                 } else {
-                    //Set<String> existingTopics = matching.stream().map( p -> p.getLeft()).collect(Collectors.toSet());
                     Set<String> topicsThisLevel =
                             matchingAtThisLevel.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
-                    //existingTopics.
                     matching.removeIf(p -> !topicsThisLevel.contains(p.getLeft()));
                 }
                 log.debug("Resulting set: {}", matching);
             }
         }
 
-        return matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
+        List<String> matchingIds = matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
+        List<String> ret = matchingIds.stream().map(id -> topicIdToTopicString.get(id)).collect(Collectors.toList());
+        return ret;
     }
 
     public List<String> matchFromPublisher(String topic) {
@@ -176,9 +179,10 @@ public class TopicAnalyzer {
             log.debug("Resulting set: {}", matching);
         }
 
-        List<String> ret = matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
+        List<String> matchingIds = matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
         log.debug("Final gts: {}", matchingGts);
-        ret.addAll(matchingGts.stream().map(p -> p.getLeft()).collect(Collectors.toList()));
+        matchingIds.addAll(matchingGts.stream().map(p -> p.getLeft()).collect(Collectors.toList()));
+        List<String> ret = matchingIds.stream().map(id -> topicIdToTopicString.get(id)).collect(Collectors.toList());
         return ret;
     }
 

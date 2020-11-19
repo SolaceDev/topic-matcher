@@ -14,7 +14,6 @@ public class TopicGenerator {
     Config config;
     private Logger log = LoggerFactory.getLogger(TopicGenerator.class);
     private StringBuilder stringBuilder = new StringBuilder();
-    private List<Topic> topics = new ArrayList<>();
     private Map<String, Topic> topicHash = new HashMap();
 
     public List<Topic> getPublisherTopics() {
@@ -27,6 +26,7 @@ public class TopicGenerator {
 
     public List<Topic> getTopics(PubOrSub pub_or_sub) {
         log.info("Generating {} topics...", pub_or_sub);
+        topicHash.clear();
         Set<String> topics = new HashSet<>();
         double sizef = Math.pow(config.getNumTopics(), .10);
         int idLength = (int) Math.round(sizef) + 1;
@@ -36,13 +36,6 @@ public class TopicGenerator {
             String id = String.format(idFormat, i);
             Topic topic = generateTopic(pub_or_sub, id);
 
-            if (i % 10_000 == 0) {
-                System.out.print('.');
-                if (i % 1_000_000 == 0) {
-                    System.out.println();
-                }
-            }
-
             if (!topics.contains(topic.getTopicString())) {
                 topics.add(topic.getTopicString());
                 topicHash.put(id, topic);
@@ -50,10 +43,6 @@ public class TopicGenerator {
                     log.info(topic.toString());
                 }
             }
-        }
-
-        if (config.getNumTopics() >= 10_000) {
-            System.out.println();
         }
 
         log.info("{} distinct topics generated.", topicHash.size());
@@ -112,20 +101,23 @@ public class TopicGenerator {
     }
 
     public List<Topic> getKnownTopics() {
-        addKnownTopic("T1", "F/*/>");
-        addKnownTopic("T2", "A/>");
-        addKnownTopic("T3", "A/*/>");
-        addKnownTopic("T4", "A/*/*");
-        addKnownTopic("T5", "B/>");
-        addKnownTopic("T6", "B/*/>");
-        addKnownTopic("T7", "B/*/*");
+        List<Topic> topics = new ArrayList<>();
+        addKnownTopic(topics,"T1", "F/*/>");
+        addKnownTopic(topics,"T2", "A/>");
+        addKnownTopic(topics,"T3", "A/*/>");
+        addKnownTopic(topics,"T4", "A/*/*");
+        addKnownTopic(topics,"T5", "B/>");
+        addKnownTopic(topics,"T6", "B/*/>");
+        addKnownTopic(topics,"T7", "B/*/*");
+        addKnownTopic(topics,"T8", "C/F/E");
         return topics;
     }
 
-    private void addKnownTopic(String id, String topicString) {
+    private void addKnownTopic(List<Topic> topics, String id, String topicString) {
         Topic topic = new Topic(id, topicString);
         topics.add(topic);
         topicHash.put(topic.getId(), topic);
+        log.info("Generated {}", topic);
     }
 
 }
