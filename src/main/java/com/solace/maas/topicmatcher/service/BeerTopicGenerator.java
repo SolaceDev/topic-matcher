@@ -49,7 +49,7 @@ public class BeerTopicGenerator {
 
     private static final String[] deliveryModes = new String[] { "car", "truck", "drone", "plane", "submarine" };
     private static final String[] vehicleTypes = deliveryModes;
-    private static final String[] deliveryAction = new String[] { "enroute", "delivered", "signatureMissing", "returned", "discpatched", "sentToPostOffice" };
+    private static final String[] deliveryAction = new String[] { "enroute", "delivered", "signatureMissing", "returned", "dispatched", "sentToPostOffice" };
 
     private final double chanceOfStar;
     private final double chanceOfBiggerThan;
