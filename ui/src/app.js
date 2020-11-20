@@ -1,3 +1,5 @@
+import { color } from "d3";
+
 export class App {
 
   selected = null;
@@ -11,22 +13,33 @@ export class App {
 		// .get((response) => {
 		//   console.log(response);
 		// });
-		const allTopics = new Set();
+		const allTopics = {};
 		this.data = {nodes:[], links:[]};
 		this.response.forEach(app => {
-			this.data.nodes.push({id: app.name, group: 1});
-			app.publishingTopics.forEach(topic => {
-					allTopics.add(topic);
-					this.data.links.push({source: app.name, target: topic});
+			const application = { id: app.name, group: 1 };
+			this.data.nodes.push(application);
+			app.publishingTopics.forEach(t => {
+				let topic = allTopics[t];
+				if (!topic) {
+					topic = { id: t, group: 2};
+					allTopics[t] = topic;
+				}
+				this.data.links.push({source: application, target: topic});
 			});
-			app.topicsMatchingSubscriptions.forEach(topic => {
-				allTopics.add(topic);
-				this.data.links.push({target: app.name, source: topic});
+			app.topicsMatchingSubscriptions.forEach(t => {
+				let topic = allTopics[t];
+				if (!topic) {
+					topic = { id: t, group: 2};
+					allTopics[t] = topic;
+				}
+				this.data.links.push({target: application, source: topic});
 			});
 		});
-		allTopics.forEach(topic => {
-			this.data.nodes.push({id: topic, group: 2});
-		});
+		for (var prop in allTopics) {
+			if (Object.prototype.hasOwnProperty.call(allTopics, prop)) {
+				this.data.nodes.push(allTopics[prop]);
+			}
+		}
   }
   
 
@@ -34,59 +47,52 @@ export class App {
 		this.group = d3.select(this.canvas);
 		const width = 1200;
 		const height = 800;
-
-    var color = d3.scaleOrdinal(d3.schemeCategory20);
-    
-		this.simulation = d3.forceSimulation()
-			.force("link", d3.forceLink().id(function(d) { return d.id; }))
-			.force("charge", d3.forceManyBody().strength(-600))
-			.force("center", d3.forceCenter(width / 2, height / 2));
+	
+		this.simulation = d3.forceSimulation(this.data.nodes)
+			.force("charge", d3.forceManyBody().strength(-800))
+			.force("center", d3.forceCenter(width / 2, height / 2))
+			.force("link", d3.forceLink(this.data.links))
+			.on("tick", this.ticked.bind(this));
 
 		this.links = this.group.append("g")
 			.attr("class", "links")
-			.selectAll("line")
-			.data(this.data.links)
-				.enter()
-        .append("line")
-        .attr("id", "oldLine")
-        .attr("stroke-width", 1);
-        
-        debugger;
-
+			.attr("stroke-width", 1)
+			.selectAll(".link");
+		
 		this.nodes = this.group.append("g")
 			.attr("class", "nodes")
-			.selectAll("g")
-			.data(this.data.nodes)
-			.enter().append("g");
+			.selectAll(".node");
 			
+		this.restart();
+  }
+  
+  restart() {
+		const color = d3.scaleOrdinal(d3.schemeCategory20);
+		// Apply the general update pattern to the nodes.
+		this.nodes = this.nodes.data(this.data.nodes, d => d.id);
+		this.nodes.exit().remove();
+		this.nodes = this.nodes.enter().append("g");
 		this.nodes.append("circle")
-				.attr("r", d => d.group === 1 ? 10 : 5)
-				.attr("fill", function(d) { return color(d.group); })
-				.on("click", d => {
-					this.selected = d;
-				})
-				.call(d3.drag()
-						.on("start", this.dragstarted.bind(this))
-						.on("drag", this.dragged.bind(this))
-						.on("end", this.dragended.bind(this)));
-
+			.attr("fill", function(d) { return color(d.group); })
+			.attr("r", d => d.group === 1 ? 10 : 5)
+			.on("click", d => this.selected = d);
 		this.nodes.append("text")
-				.text(function(d) {
-					return d.id;
-				})
-				.attr('x', 6)
-				.attr('y', 3);
-
-		this.nodes.append("title")
-				.text(function(d) { return d.id; });
-
-		this.simulation
-				.nodes(this.data.nodes)
-				.on("tick", this.ticked.bind(this));
-
-		this.simulation.force("link")
-				.links(this.data.links);
-	}
+			.text(d => d.id)
+			.attr('x', 0)
+			.attr('y', 15)
+			.attr("text-anchor", "middle");
+		this.nodes.merge(this.nodes);
+		
+		// Apply the general update pattern to the links.
+		this.links = this.links.data(this.data.links, d => `${d.source.id}-${d.target.id}`);
+		this.links.exit().remove();
+		this.links = this.links.enter().append("line").merge(this.links);
+		
+		// Update and restart the simulation.
+		this.simulation.nodes(this.data.nodes);
+		this.simulation.force("link").links(this.data.links);
+		this.simulation.restart();
+  }
 
 	ticked() {
 			this.links
@@ -96,9 +102,9 @@ export class App {
 				.attr("y2", function(d) { return d.target.y; });
 
 			this.nodes
-				.attr("transform", function(d) {
-					return "translate(" + d.x + "," + d.y + ")";
-				})
+			.attr("transform", function(d) {
+				return "translate(" + d.x + "," + d.y + ")";
+			  })
 	}
 
 	dragstarted(d) {
@@ -118,27 +124,12 @@ export class App {
 		if (!d3.event.active) this.simulation.alphaTarget(0);
 		d.fx = null;
 		d.fy = null;
-  }
-  
-  addNewTopic(app, topic) {
-    console.log(app, topic);
-    const node = this.data.nodes.find(node => node.id === topic);
-    this.data.links.push({source: app.id, target: topic});
-    const link = this.group
-      .select(".links")
-      .selectAll("line")
-			.data(this.data.links)
-				.enter()
-        .insert("line")
-        .attr("id", "newLine")
-        .attr("stroke-width", 1);
-        this.simulation
-				.nodes(this.data.nodes)
-				.on("tick", this.ticked.bind(this));
-
-		this.simulation.force("link")
-				.links(this.data.links);
-        this.simulation.restart();
-
-  }
+	}
+	
+	addNewTopic(app, topic) {
+		console.log(app, topic);
+		const node = this.data.nodes.find(node => node.id === topic);
+		this.data.links.push({source: app, target: node});
+		this.restart();
+	}
 }
