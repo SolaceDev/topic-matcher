@@ -1,6 +1,7 @@
 package com.solace.maas.topicmatcher.igor;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +17,7 @@ public class IgorTopicsRepoImpl implements TopicsRepo {
     private static final Level ROOT = new Level((short) 0, "<empty>", null, false);
 
     // if we want to save space, we can consider using unsigned byte instead of short
-    // <lvl, <parentLvlName, lvlNames>>
+    // <depth, <parentLvlName, siblingLvlNames>>
     private static final Map<Short, Map<String, Set<Level>>> LEVELS_BY_DEPTH = new HashMap<>();
 
     static {
@@ -38,6 +39,19 @@ public class IgorTopicsRepoImpl implements TopicsRepo {
     @Override
     public List<String> findCoveringSubscriptions(String topic) {
         throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    @Override
+    public Object getTopicTree() {
+        short depth = 0;
+        List<Level> allLevels = new ArrayList<>();
+        while (LEVELS_BY_DEPTH.containsKey(depth)) {
+            allLevels.addAll(LEVELS_BY_DEPTH.get(depth).values().stream()
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList()));
+            depth++;
+        }
+        return allLevels;
     }
 
     // TODO: recursion must be reworked either via appropriate while loop or via queue

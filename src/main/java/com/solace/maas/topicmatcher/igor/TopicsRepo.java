@@ -12,4 +12,6 @@ public interface TopicsRepo {
 
     List<String> findCoveringSubscriptions(String topic);
 
+    Object getTopicTree();
+
 }
