@@ -29,16 +29,12 @@ public class TopicAnalyzer {
                 if (maps.size() <= level) {
                     int levelsNeeded = level - maps.size() + 1;
                     for (int i = 0; i < levelsNeeded; i++) {
-                        maps.add(new HashMap<String, List<Pair<String, Integer>>>());
+                        maps.add(new HashMap<>());
                     }
                 }
                 Map<String, List<Pair<String, Integer>>> matchingTopicsAtThisLevel = maps.get(level);
 
-                List<Pair<String, Integer>> listOfTopics = matchingTopicsAtThisLevel.get(levelString);
-                if (listOfTopics == null) {
-                    listOfTopics = new ArrayList<>();
-                    matchingTopicsAtThisLevel.put(levelString, listOfTopics);
-                }
+                List<Pair<String, Integer>> listOfTopics = matchingTopicsAtThisLevel.computeIfAbsent(levelString, k -> new ArrayList<>());
                 listOfTopics.add(Pair.of(topic.getId(), topic.getNumLevels()));
             }
         }
