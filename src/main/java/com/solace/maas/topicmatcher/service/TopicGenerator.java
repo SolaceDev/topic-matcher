@@ -57,7 +57,7 @@ public class TopicGenerator {
         return topicHash.values().stream().collect(Collectors.toList());
     }
 
-    private Topic generateTopic(PubOrSub pub_or_sub, String id) {
+    protected Topic generateTopic(PubOrSub pub_or_sub, String id) {
         stringBuilder.delete(0, stringBuilder.length());
         List<String> topicLevels = new ArrayList<>();
         int levels =

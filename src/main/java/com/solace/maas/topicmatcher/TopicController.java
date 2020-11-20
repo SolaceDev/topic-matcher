@@ -5,7 +5,8 @@ import com.solace.maas.topicmatcher.service.TopicService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -31,5 +32,8 @@ public class TopicController {
         return topicService.getApplication(name);
     }
 
-
+    @PostMapping("/applications/{name}/subscriptions")
+    public Application addSubscription(@PathVariable String name, @RequestBody String body) {
+        return topicService.addSubscription(name, body);
+    }
 }

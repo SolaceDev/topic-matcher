@@ -3,6 +3,7 @@ package com.solace.maas.topicmatcher.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -54,9 +55,9 @@ public class BeerTopicGenerator {
     private final double chanceOfStar;
     private final double chanceOfBiggerThan;
 
-    public BeerTopicGenerator(double chanceOfStar, double chanceOfBiggerThan) {
+    public BeerTopicGenerator(double chanceOfStar, double changeOfGT) {
         this.chanceOfStar = chanceOfStar;
-        this.chanceOfBiggerThan = chanceOfBiggerThan;
+        this.chanceOfBiggerThan = changeOfGT;
     }
 
     private String pickRandom(String[] strings) {
@@ -85,7 +86,7 @@ public class BeerTopicGenerator {
     }
 
 
-    private List<String> generateDeliveryParts() {
+    public List<String> generateDeliveryParts() {
         return Arrays.asList(
                 "deliver",
                 pickRandom(vehicleTypes),
@@ -96,7 +97,7 @@ public class BeerTopicGenerator {
                 randomId("order", 5000));
     }
 
-    private List<String> generateOrderParts() {
+    public List<String> generateOrderParts() {
         return Arrays.asList(
                 pickRandom(orderDomains),
                 pickRandom(productGroup),
@@ -122,23 +123,24 @@ public class BeerTopicGenerator {
     }
 
     public String generateSubscription(List<String> parts) {
-        StringBuilder sb = new StringBuilder();
+        return String.join("/", generateSubscriptionParts(parts));
+    }
+
+    public List<String> generateSubscriptionParts(List<String> parts) {
+        List<String> subScriptionParts = new ArrayList<>();
         for (int i=0; i<parts.size(); i++) {
-            if (i != 0 ){
-                sb.append("/");
-            }
             if (Math.random() < chanceOfBiggerThan) {
-                sb.append(">");
-                return sb.toString();
+                subScriptionParts.add(">");
+                return subScriptionParts;
             }
             String part = parts.get(i);
             if (Math.random() < chanceOfStar) {
                 int pos = random.nextInt(part.length());
-                sb.append(part.substring(0, pos) + '*');
+                subScriptionParts.add(part.substring(0, pos) + '*');
             } else {
-                sb.append(part);
+                subScriptionParts.add(part);
             }
         }
-        return sb.toString();
+        return subScriptionParts;
     }
 }
