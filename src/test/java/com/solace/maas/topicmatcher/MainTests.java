@@ -25,11 +25,12 @@ class MainTests {
     @Autowired
     TopicService topicService;
 
-    //@BeforeTestMethod
     @BeforeEach
     public void init() {
         log.info("BEFORE --------------------------------");
         config.setLargeDataSet(true);
+        config.setHardCodedTopics(true);
+        //config.setMaxLevelLength(20);
         topicService.init();
     }
 
@@ -41,24 +42,13 @@ class MainTests {
 
     private void testPublisherToSubscriber() {
         log.info("Matching publisher to subscribers");
-        doSearch(PubOrSub.pub, "A");
-        doSearch(PubOrSub.pub,"A/A");
-        doSearch(PubOrSub.pub,"A/A/A");
-        doSearch(PubOrSub.pub,"A/B/C");
-        doSearch(PubOrSub.pub,"B/A/A");
-        doSearch(PubOrSub.pub,"B/C/C/E");
-        doSearch(PubOrSub.pub,"B");
+        doSearch(PubOrSub.pub, "AAA/BBB/CCC");
     }
 
     private void testSubscriberToPublisher() {
         log.info("Matching subscriber to publishers");
         doSearch( PubOrSub.sub, "A");
-        doSearch( PubOrSub.sub, "A/*");
-        doSearch( PubOrSub.sub, "A/*/B/>");
-        doSearch( PubOrSub.sub, "A/*/*/F/*");
-        doSearch( PubOrSub.sub, "A/B/C/E/F");
-        doSearch( PubOrSub.sub, "A/>");
-        doSearch( PubOrSub.sub, ">");
+        doSearch( PubOrSub.sub, "AA/B/C");
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {

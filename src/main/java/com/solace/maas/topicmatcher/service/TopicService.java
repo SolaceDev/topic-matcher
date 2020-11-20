@@ -41,18 +41,19 @@ public class TopicService {
         topicsMatchingSubscriptions.clear();
 
         if (config.isLargeDataSet()) {
-            publisherAnalyzer.analyze(topicGenerator.getPublisherTopics());
-            subscriberAnalyzer.analyze(topicGenerator.getSubscriberTopics());
+            publisherAnalyzer.analyze(PubOrSub.pub, topicGenerator.getPublisherTopics());
+            subscriberAnalyzer.analyze(PubOrSub.sub, topicGenerator.getSubscriberTopics());
         } else {
             // Generate the applications.
             List<Topic> publisherTopics = topicGenerator.getPublisherTopics();
             List<Topic> subscriberTopics = topicGenerator.getSubscriberTopics();
 
-            publisherAnalyzer.analyze(publisherTopics);
-            subscriberAnalyzer.analyze(subscriberTopics);
+            publisherAnalyzer.analyze(PubOrSub.pub, publisherTopics);
+            subscriberAnalyzer.analyze(PubOrSub.sub, subscriberTopics);
 
             // If we have 10-99 apps, each has an id like App-09.
             // If we have 100-999, each has an id like App-009 and so on.
+            // So if we have 100 topics our format string will look like App-%03d
             double sizef = Math.pow(config.getNumApplications(), .10);
             int idLength = (int) Math.round(sizef) + 1;
             String idFormat = String.format("App-%%0%dd", idLength);
