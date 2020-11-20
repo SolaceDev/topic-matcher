@@ -27,8 +27,11 @@ public class TopicService {
     private TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
     private List<Application> applications = new ArrayList<>();
     private Map<String, Application> applicationsById = new HashMap<>();
-    private Map<String, List<Application>> subscribingTopicToApplications = new HashMap<>();
-    private Map<String, List<Application>> publishingTopicToApplications = new HashMap<>();
+    // We're not doing anything with these yet...
+
+    //private Map<String, List<Application>> subscribingTopicToApplications = new HashMap<>();
+    //private Map<String, List<Application>> publishingTopicToApplications = new HashMap<>();
+
     private Map<String, List<String>> topicsMatchingSubscriptions = new HashMap<>();
 
     private List<Topic> publisherTopics;
@@ -54,15 +57,17 @@ public class TopicService {
     private void computeAppSubscriptions(Application application) {
         Set<String> matchingTopics = new HashSet<>();
 
-        for (Topic sub : subscriberTopics) {
+        for (String sub : application.getSubscribingTopics()) {
+            /* We're not using this yet.
             List<Application> appsForThisTopic = subscribingTopicToApplications.computeIfAbsent(sub.getTopicString(), k -> new ArrayList<>());
             appsForThisTopic.add(application);
+            */
 
             // Find the matching published topics
-            List<String> matchingForThisSub = topicsMatchingSubscriptions.get(sub.getTopicString());
+            List<String> matchingForThisSub = topicsMatchingSubscriptions.get(sub);
             if (matchingForThisSub == null) {
-                matchingForThisSub = publisherAnalyzer.matchFromSubscriber(sub.getTopicString());
-                topicsMatchingSubscriptions.put(sub.getTopicString(), matchingForThisSub);
+                matchingForThisSub = publisherAnalyzer.matchFromSubscriber(sub);
+                topicsMatchingSubscriptions.put(sub, matchingForThisSub);
             }
 
             matchingTopics.addAll(matchingForThisSub); // next: store in app field.
