@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 public class TopicService {
@@ -47,46 +46,9 @@ public class TopicService {
         subscriberTopics = topicGenerator.getSubscriberTopics();
 
         if (!config.isLargeDataSet()) {
-            // If we have 10-99 apps, each has an id like App-09.
-            // If we have 100-999, each has an id like App-009 and so on.
             createApplications();
-            for(Application app : applications) {
-                seedAppSubscriptions(app);
-            }
         }
-
         analyze();
-    }
-
-    private void seedAppSubscriptions(Application application) {
-        Set<String> matchingTopics = new HashSet<>();
-
-        for (Topic pub : publisherTopics) {
-            if (Math.random() < config.getAppToTopicRatio()) {
-                application.addPublishingTopic(pub.getTopicString());
-                List<Application> appsForThisTopic = publishingTopicToApplications.computeIfAbsent(pub.getTopicString(), k -> new ArrayList<>());
-                appsForThisTopic.add(application);
-            }
-        }
-        for (Topic sub : subscriberTopics) {
-            if (Math.random() < config.getAppToTopicRatio()) {
-                application.addSubscribingTopic(sub.getTopicString());
-                List<Application> appsForThisTopic = subscribingTopicToApplications.computeIfAbsent(sub.getTopicString(), k -> new ArrayList<>());
-                appsForThisTopic.add(application);
-
-                // Find the matching published topics
-                List<String> matchingForThisSub = topicsMatchingSubscriptions.get(sub.getTopicString());
-                if (matchingForThisSub == null) {
-                    matchingForThisSub = publisherAnalyzer.matchFromSubscriber(sub.getTopicString());
-                    topicsMatchingSubscriptions.put(sub.getTopicString(), matchingForThisSub);
-                }
-
-                matchingTopics.addAll(matchingForThisSub);
-            }
-        }
-
-        application.setTopicsMatchingSubscriptions(new ArrayList<>(matchingTopics));
-        log.debug("seededAppSubs app {}", application);
 
     }
 
@@ -122,6 +84,17 @@ public class TopicService {
             application.setName(name);
             applications.add(application);
             applicationsById.put(name, application);
+
+            for (Topic pub : publisherTopics) {
+                if (Math.random() < config.getAppToTopicRatio()) {
+                    application.addPublishingTopic(pub.getTopicString());
+                }
+            }
+            for (Topic sub : subscriberTopics) {
+                if (Math.random() < config.getAppToTopicRatio()) {
+                    application.addSubscribingTopic(sub.getTopicString());
+                }
+            }
         }
         return applications;
     }
@@ -166,13 +139,21 @@ public class TopicService {
             getApplication(appName).addSubscribingTopic(sub);
             analyze = true;
         }
-        Topic t = new Topic("_", sub);
-        if (!subscriberTopics.contains(t)) {
-            subscriberTopics.add(t);
+        if (!subscriptionFound(sub)) {
+            subscriberTopics.add(new Topic(topicGenerator.getNextId(), sub));
             analyze = true;
         }
         log.debug("Analyze {}", analyze);
         if (analyze) analyze();
         return getApplication(appName);
+    }
+
+    private boolean subscriptionFound(String sub) {
+        for (Topic t : subscriberTopics) {
+            if (t.getTopicString().equals(sub)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
