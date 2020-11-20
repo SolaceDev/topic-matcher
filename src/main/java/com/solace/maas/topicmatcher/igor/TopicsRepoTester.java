@@ -24,6 +24,9 @@ public class TopicsRepoTester {
         topicsRepo.registerTopic("a/x");
         topicsRepo.registerTopic("a");
         topicsRepo.registerTopic("x");
+
+        System.out.println(topicsRepo.getTopicTree());
+
         List<String> results;
 
         results = topicsRepo.findMatchingTopics("a/b/c/d/e");
