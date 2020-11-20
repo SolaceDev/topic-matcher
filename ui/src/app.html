@@ -1,0 +1,11 @@
+<template>
+	<require from="app.scss"></require>
+	<svg width="1200" height="800">
+		<g ref="canvas"></g>
+	</svg>
+	<div if.bind="selected">
+		<div>Selected: ${selected.id}</div>
+		<input type="text" value.bind="newTopic">
+		<button click.delegate="addNewTopic(selected, newTopic)">Add</button>
+	</div>
+</template>
