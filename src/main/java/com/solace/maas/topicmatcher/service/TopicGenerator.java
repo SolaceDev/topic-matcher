@@ -44,7 +44,7 @@ public class TopicGenerator {
             if (!topics.contains(topic.getTopicString())) {
                 topics.add(topic.getTopicString());
                 topicHash.put(id, topic);
-                if (config.getNumTopics() <= 200) {
+                if (config.getNumTopics() <= 200 && !config.isLargeDataSet()) {
                     log.info(topic.toString());
                 }
             }
