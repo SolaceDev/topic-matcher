@@ -36,7 +36,7 @@ class MainTests {
 
     @Test
     void testMatching() {
-        testPublisherToSubscriber();
+        //testPublisherToSubscriber();
         testSubscriberToPublisher();
     }
 
@@ -47,8 +47,8 @@ class MainTests {
 
     private void testSubscriberToPublisher() {
         log.info("Matching subscriber to publishers");
-        doSearch( PubOrSub.sub, "A");
-        doSearch( PubOrSub.sub, "AA/B/C");
+        //doSearch( PubOrSub.sub, "A/>");
+        doSearch( PubOrSub.sub, "AA*/*/CCC");
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {

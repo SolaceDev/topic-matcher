@@ -3,6 +3,7 @@ package com.solace.maas.topicmatcher.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class Topic {
     private String id;
@@ -47,5 +48,20 @@ public class Topic {
                 ", levels='" + numLevels + '\'' +
                 ", topicString='" + topicString + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Topic topic = (Topic) o;
+        return numLevels == topic.numLevels &&
+                topicString.equals(topic.topicString) &&
+                topicLevels.equals(topic.topicLevels);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(numLevels, topicString, topicLevels);
     }
 }

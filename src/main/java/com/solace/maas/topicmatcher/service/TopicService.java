@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 public class TopicService {
@@ -32,6 +31,9 @@ public class TopicService {
     private Map<String, List<Application>> publishingTopicToApplications = new HashMap<>();
     private Map<String, List<String>> topicsMatchingSubscriptions = new HashMap<>();
 
+    private List<Topic> publisherTopics;
+    private List<Topic> subscriberTopics;
+
     @PostConstruct
     public void init() {
 
@@ -39,69 +41,69 @@ public class TopicService {
         applications.clear();
         applicationsById.clear();
         topicsMatchingSubscriptions.clear();
+        publisherTopics = topicGenerator.getPublisherTopics();
+        subscriberTopics = topicGenerator.getSubscriberTopics();
 
-        if (config.isLargeDataSet()) {
-            publisherAnalyzer.analyze(PubOrSub.pub, topicGenerator.getPublisherTopics());
-            subscriberAnalyzer.analyze(PubOrSub.sub, topicGenerator.getSubscriberTopics());
-        } else {
-            // Generate the applications.
-            List<Topic> publisherTopics = topicGenerator.getPublisherTopics();
-            List<Topic> subscriberTopics = topicGenerator.getSubscriberTopics();
+        if (!config.isLargeDataSet()) {
+            createApplications();
+        }
+        analyze();
 
-            publisherAnalyzer.analyze(PubOrSub.pub, publisherTopics);
-            subscriberAnalyzer.analyze(PubOrSub.sub, subscriberTopics);
+    }
 
-            // If we have 10-99 apps, each has an id like App-09.
-            // If we have 100-999, each has an id like App-009 and so on.
-            // So if we have 100 topics our format string will look like App-%03d
-            double sizef = Math.pow(config.getNumApplications(), .10);
-            int idLength = (int) Math.round(sizef) + 1;
-            String idFormat = String.format("App-%%0%dd", idLength);
+    private void computeAppSubscriptions(Application application) {
+        Set<String> matchingTopics = new HashSet<>();
 
+        for (Topic sub : subscriberTopics) {
+            List<Application> appsForThisTopic = subscribingTopicToApplications.computeIfAbsent(sub.getTopicString(), k -> new ArrayList<>());
+            appsForThisTopic.add(application);
 
-            for (int i = 0; i < config.getNumApplications(); i++) {
-                Application application = new Application();
-                String name = String.format(idFormat, i);
-                application.setName(name);
-                applications.add(application);
-                applicationsById.put(name, application);
-                Set<String> matchingTopics = new HashSet<>();
-
-                for (Topic pub : publisherTopics) {
-                    if (Math.random() < config.getAppToTopicRatio()) {
-                        application.addPublishingTopic(pub.getTopicString());
-                        List<Application> appsForThisTopic = publishingTopicToApplications.get(pub.getTopicString());
-                        if (appsForThisTopic == null) {
-                            appsForThisTopic = new ArrayList<>();
-                            publishingTopicToApplications.put(pub.getTopicString(), appsForThisTopic);
-                        }
-                        appsForThisTopic.add(application);
-                    }
-                }
-                for (Topic sub : subscriberTopics) {
-                    if (Math.random() < config.getAppToTopicRatio()) {
-                        application.addSubscribingTopic(sub.getTopicString());
-                        List<Application> appsForThisTopic = subscribingTopicToApplications.get(sub.getTopicString());
-                        if (appsForThisTopic == null) {
-                            appsForThisTopic = new ArrayList<>();
-                            subscribingTopicToApplications.put(sub.getTopicString(), appsForThisTopic);
-                        }
-                        appsForThisTopic.add(application);
-
-                        // Find the matching published topics
-                        List<String> matchingForThisSub = topicsMatchingSubscriptions.get(sub.getTopicString());
-                        if (matchingForThisSub == null) {
-                            matchingForThisSub = publisherAnalyzer.matchFromSubscriber(sub.getTopicString());
-                            topicsMatchingSubscriptions.put(sub.getTopicString(), matchingForThisSub);
-                        }
-
-                        matchingTopics.addAll(matchingForThisSub); // next: store in app field.
-                    }
-                }
-
-                application.setTopicsMatchingSubscriptions(matchingTopics.stream().collect(Collectors.toList()));
-                log.debug("Generated app {}", application);
+            // Find the matching published topics
+            List<String> matchingForThisSub = topicsMatchingSubscriptions.get(sub.getTopicString());
+            if (matchingForThisSub == null) {
+                matchingForThisSub = publisherAnalyzer.matchFromSubscriber(sub.getTopicString());
+                topicsMatchingSubscriptions.put(sub.getTopicString(), matchingForThisSub);
             }
+
+            matchingTopics.addAll(matchingForThisSub); // next: store in app field.
+        }
+
+        application.setTopicsMatchingSubscriptions(new ArrayList<>(matchingTopics));
+        log.debug("computeAppSubscriptions app {}", application);
+    }
+
+    public List<Application> createApplications() {
+        double sizef = Math.pow(config.getNumApplications(), .10);
+        int idLength = (int) Math.round(sizef) + 1;
+        String idFormat = String.format("App-%%0%dd", idLength);
+
+        for (int i = 0; i < config.getNumApplications(); i++) {
+            Application application = new Application();
+            String name = String.format(idFormat, i);
+            application.setName(name);
+            applications.add(application);
+            applicationsById.put(name, application);
+
+            for (Topic pub : publisherTopics) {
+                if (Math.random() < config.getAppToTopicRatio()) {
+                    application.addPublishingTopic(pub.getTopicString());
+                }
+            }
+            for (Topic sub : subscriberTopics) {
+                if (Math.random() < config.getAppToTopicRatio()) {
+                    application.addSubscribingTopic(sub.getTopicString());
+                }
+            }
+        }
+        return applications;
+    }
+
+    public void analyze() {
+        publisherAnalyzer.analyze(PubOrSub.pub, publisherTopics);
+        subscriberAnalyzer.analyze(PubOrSub.sub, subscriberTopics);
+
+        for (Application application : applications) {
+            computeAppSubscriptions(application);
         }
     }
 
@@ -127,5 +129,30 @@ public class TopicService {
 
     public Application getApplication(String name) {
         return applicationsById.get(name);
+    }
+
+    public Application addSubscription(String appName, String sub) {
+        Application app = getApplication(appName);
+        boolean analyze = false;
+        if (!app.getSubscribingTopics().contains(sub)) {
+            getApplication(appName).addSubscribingTopic(sub);
+            analyze = true;
+        }
+        if (!subscriptionFound(sub)) {
+            subscriberTopics.add(new Topic(topicGenerator.getNextId(), sub));
+            analyze = true;
+        }
+        log.debug("Analyze {}", analyze);
+        if (analyze) analyze();
+        return getApplication(appName);
+    }
+
+    private boolean subscriptionFound(String sub) {
+        for (Topic t : subscriberTopics) {
+            if (t.getTopicString().equals(sub)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
