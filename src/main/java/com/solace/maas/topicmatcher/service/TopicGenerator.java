@@ -1,5 +1,8 @@
-package com.solace.maas.topicmatcher;
+package com.solace.maas.topicmatcher.service;
 
+import com.solace.maas.topicmatcher.Config;
+import com.solace.maas.topicmatcher.PubOrSub;
+import com.solace.maas.topicmatcher.model.Topic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +31,16 @@ public class TopicGenerator {
         log.info("Generating {} topics...", pub_or_sub);
         topicHash.clear();
         Set<String> topics = new HashSet<>();
+
+        // If we have 10-99 topics, each has an id like T09.
+        // If we have 100-999, each has an id like T009 and so on.
         double sizef = Math.pow(config.getNumTopics(), .10);
         int idLength = (int) Math.round(sizef) + 1;
         String idFormat = String.format("T%%0%dd", idLength);
 
-        for (int i = 0; i < config.getNumTopics(); i++) {
+        int numTopics = config.isLargeDataSet() ? config.getLargeDataSetNumTopics() : config.getNumTopics();
+
+        for (int i = 0; i < numTopics; i++) {
             String id = String.format(idFormat, i);
             Topic topic = generateTopic(pub_or_sub, id);
 
@@ -52,7 +60,8 @@ public class TopicGenerator {
     private Topic generateTopic(PubOrSub pub_or_sub, String id) {
         stringBuilder.delete(0, stringBuilder.length());
         List<String> topicLevels = new ArrayList<>();
-        int levels = 1 + (int) (Math.random() * (config.getMaxLevels()));
+        int levels =
+                config.getMinLevels() + (int) (Math.random() * (config.getMaxLevels() - config.getMinLevels() + 1));
 
         for (int level = 0; level < levels; level++) {
             char c = ' '; // to be replaced soon.

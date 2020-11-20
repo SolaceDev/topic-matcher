@@ -1,53 +1,46 @@
 package com.solace.maas.topicmatcher;
 
+import com.solace.maas.topicmatcher.service.TopicAnalyzer;
+import com.solace.maas.topicmatcher.service.TopicService;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.event.annotation.BeforeTestClass;
+import org.springframework.test.context.event.annotation.BeforeTestMethod;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-@SpringBootApplication
-public class Application implements ApplicationRunner {
+@SpringBootTest
+class MainTests {
 
-    private Logger log = LoggerFactory.getLogger(Application.class);
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
+    private final Logger log = LoggerFactory.getLogger(MainTests.class);
 
-//    @Autowired
-//    Config config;
-//    @Autowired
-//    TopicGenerator topicGenerator;
-//    @Autowired
-//    TopicRepository topicRepository;
-
+    @Autowired
+    Config config;
 
     @Autowired
     TopicService topicService;
 
-    @Override
-    public void run(ApplicationArguments args) throws Exception {
+    //@BeforeTestMethod
+    @BeforeEach
+    public void init() {
+        log.info("BEFORE --------------------------------");
+        config.setLargeDataSet(true);
+        topicService.init();
+    }
+
+    @Test
+    void testMatching() {
         testPublisherToSubscriber();
         testSubscriberToPublisher();
     }
 
     private void testPublisherToSubscriber() {
         log.info("Matching publisher to subscribers");
-//        List<Topic> topics = topicRepository.getSubscriberTopics();
-//        //List<Topic> topics = topicGenerator.getKnownTopics();
-//        log.info("Analysis started.");
-//        subscriberAnalyzer.analyze(topics);
-//        log.info("Analysis finished.");
-//
-//        if (config.getNumTopics() <= 20) {
-//            subscriberAnalyzer.dump();
-//        }
-
         doSearch(PubOrSub.pub, "A");
         doSearch(PubOrSub.pub,"A/A");
         doSearch(PubOrSub.pub,"A/A/A");
@@ -59,16 +52,6 @@ public class Application implements ApplicationRunner {
 
     private void testSubscriberToPublisher() {
         log.info("Matching subscriber to publishers");
-//        List<Topic> topics = topicRepository.getPublisherTopics();
-//        //List<Topic> topics = topicGenerator.getKnownTopics();
-//        log.info("Analysis started.");
-//        publisherAnalyzer.analyze(topics);
-//        log.info("Analysis finished.");
-//
-//        if (config.getNumTopics() <= 20) {
-//            publisherAnalyzer.dump();
-//        }
-
         doSearch( PubOrSub.sub, "A");
         doSearch( PubOrSub.sub, "A/*");
         doSearch( PubOrSub.sub, "A/*/B/>");

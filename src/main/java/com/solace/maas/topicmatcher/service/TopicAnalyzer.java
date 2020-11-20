@@ -1,5 +1,7 @@
-package com.solace.maas.topicmatcher;
+package com.solace.maas.topicmatcher.service;
 
+import com.solace.maas.topicmatcher.PubOrSub;
+import com.solace.maas.topicmatcher.model.Topic;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,10 +11,10 @@ import java.util.stream.Collectors;
 
 public class TopicAnalyzer {
 
+    private final Logger log = LoggerFactory.getLogger(TopicAnalyzer.class);
     private List<Map<String, List<Pair<String, Integer>>>> maps = new ArrayList();
     private List<String> allTopicStrings = new ArrayList<>();
     private Map<String, String> topicIdToTopicString = new HashMap<>();
-    private final Logger log = LoggerFactory.getLogger(TopicAnalyzer.class);
 
     public void analyze(List<Topic> topics) {
         allTopicStrings.clear();
@@ -20,7 +22,7 @@ public class TopicAnalyzer {
         for (Topic topic : topics) {
             allTopicStrings.add(topic.getTopicString());
             topicIdToTopicString.put(topic.getId(), topic.getTopicString());
-            int numLevels = topic.getLevels();
+            int numLevels = topic.getNumLevels();
             for (int level = 0; level < numLevels; level++) {
                 String levelString = topic.getLevel(level);
 
@@ -37,7 +39,7 @@ public class TopicAnalyzer {
                     listOfTopics = new ArrayList<>();
                     matchingTopicsAtThisLevel.put(levelString, listOfTopics);
                 }
-                listOfTopics.add(Pair.of(topic.getId(), topic.getLevels()));
+                listOfTopics.add(Pair.of(topic.getId(), topic.getNumLevels()));
             }
         }
     }

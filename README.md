@@ -1,6 +1,6 @@
 # Topic Matcher
 
-Fun and games with Solice topics!
+Fun and games with Solace topics!
 
 This is throwaway code for a hackathon.
 
