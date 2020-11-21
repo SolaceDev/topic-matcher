@@ -18,7 +18,7 @@ public class Config {
     private int numApplications = 20;
     private int numTopics = 40;
     private boolean largeDataSet = false; // If true, we generate a large data set and no applications.
-    private int largeDataSetNumTopics = 10; // 1_000_000;
+    private int largeDataSetNumTopics = 15_000_000;
     private int largeDataSetMaxLevels = 6;
     private int vocabularySize = 10; // number of letters in the alphabet that we use for topics.
 

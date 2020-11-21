@@ -7,10 +7,12 @@ import com.solace.maas.topicmatcher.model.Topic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class TopicService {
@@ -23,35 +25,37 @@ public class TopicService {
     @Autowired
     TopicGenerator topicGenerator;
 
-    private TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
-    private TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
-    private List<Application> applications = new ArrayList<>();
-    private Map<String, Application> applicationsById = new HashMap<>();
+    @Autowired
+    private ConfigurableEnvironment configurableEnvironment;
+
+    private final TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
+    private final TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
+    private final List<Application> applications = new ArrayList<>();
+    private final Map<String, Application> applicationsById = new HashMap<>();
     // We're not doing anything with these yet...
 
     //private Map<String, List<Application>> subscribingTopicToApplications = new HashMap<>();
     //private Map<String, List<Application>> publishingTopicToApplications = new HashMap<>();
 
-    private Map<String, List<String>> topicsMatchingSubscriptions = new HashMap<>();
+    private final Map<String, List<String>> topicsMatchingSubscriptions = new HashMap<>();
 
     private List<Topic> publisherTopics;
     private List<Topic> subscriberTopics;
 
     @PostConstruct
-    public void init() {
 
-        log.info("init: largeDataSet: {}", config.isLargeDataSet());
-        applications.clear();
-        applicationsById.clear();
-        topicsMatchingSubscriptions.clear();
+    public void postConstruct() {
+        String[] activeProfiles = configurableEnvironment.getActiveProfiles();
+        Set profiles = Arrays.stream(activeProfiles).collect(Collectors.toSet());
+        if (!profiles.contains("test")) {
+            init();
+        }
+    }
+
+    public void init() {
         publisherTopics = topicGenerator.getPublisherTopics();
         subscriberTopics = topicGenerator.getSubscriberTopics();
-
-        if (!config.isLargeDataSet()) {
-            createApplications();
-        }
-        analyze();
-
+        createApplications();
     }
 
     private void computeAppSubscriptions(Application application) {
@@ -59,7 +63,8 @@ public class TopicService {
 
         for (String sub : application.getSubscribingTopics()) {
             /* We're not using this yet.
-            List<Application> appsForThisTopic = subscribingTopicToApplications.computeIfAbsent(sub.getTopicString(), k -> new ArrayList<>());
+            List<Application> appsForThisTopic = subscribingTopicToApplications.computeIfAbsent(sub.getTopicString(),
+             k -> new ArrayList<>());
             appsForThisTopic.add(application);
             */
 
