@@ -81,15 +81,16 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
     public List<String> findMatchingTopics(String subscription) {
         String[] levels = subscription.split("/");
         List<String> matches = new ArrayList<>();
-        findMatchingTopics(levels, 0, ROOT, matches);
+        findMatchingTopics(levels, ROOT, matches);
         return matches;
     }
 
     // TODO: recursion must be reworked either via appropriate while loop or via queue
     public void findMatchingTopics(String[] levels,
-                                   int index,
                                    TreeLevel parent,
                                    List<String> matches) {
+        // depth of a parent level matches with the index of the levels array
+        int index = parent.getDepth();
         if (index >= levels.length) {
             return;
         }
@@ -111,7 +112,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                         .filter(lvl -> !lvl.isLeaf())
                         .collect(Collectors.toSet());
                 for (TreeLevel nonLeafLevel : nonLeafSiblings) {
-                    findMatchingTopics(levels, index + 1, nonLeafLevel, matches);
+                    findMatchingTopics(levels, nonLeafLevel, matches);
                 }
             }
         } else if (levels[index].endsWith("*")) {
@@ -124,7 +125,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                 // is not leaf
                 Set<TreeLevel> nonLeafMatchedLevels = getLevelsFilteredByPrefix(levels[index], parent.getChildren(), lvl -> !lvl.isLeaf());
                 for (TreeLevel nonLeafLevel : nonLeafMatchedLevels) {
-                    findMatchingTopics(levels, index + 1, nonLeafLevel, matches);
+                    findMatchingTopics(levels, nonLeafLevel, matches);
                 }
             }
         } else if (levels[index].equals(">")) {
@@ -146,7 +147,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                 if (isLeafLevel) {
                     matches.add(current.getFullPath());
                 } else {
-                    findMatchingTopics(levels, index + 1, current, matches);
+                    findMatchingTopics(levels, current, matches);
                 }
             }
         }
@@ -179,6 +180,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
         private final String name;
         private final TreeLevel parent;
         private final boolean leaf;
+        private int depth = -1;
         // by hash lookup
         private final Map<Integer, TreeLevel> children = new HashMap<>();
 
@@ -280,6 +282,20 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                 }
             }
             return sb.toString();
+        }
+
+        // lazy calculation
+        public int getDepth() {
+            if (depth == -1) {
+                TreeLevel current = this;
+                int counter = 0;
+                while (current.getParent() != null) {
+                    current = current.getParent();
+                    counter++;
+                }
+                depth = counter;
+            }
+            return depth;
         }
     }
 
