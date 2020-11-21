@@ -8,7 +8,8 @@ import org.springframework.stereotype.Component;
 public class Config {
 
     private double appToTopicRatio = 0.3; // chance that an app will be assigned a particular topic
-    private double chanceOfGT = 0.5;  // Chance that a leaf node on a subscription will be >
+    private boolean beer = true; // If true, we use the Beer topic generator.
+    private double chanceOfGT = 0.2;  // Chance that a leaf node on a subscription will be >
     private double chanceOfPrefix = 0.4; // Chance that a level on a subscription will have a prefixed *
     private double chanceOfStar = 0.4; // Chance that a level on a subscription will be a *
     private boolean hardCodedTopics; // If true, the topic generator returns a hard-coded set of topics.
@@ -18,17 +19,17 @@ public class Config {
     private int numApplications = 20;
     private int numTopics = 40;
     private boolean largeDataSet = false; // If true, we generate a large data set and no applications.
-    private int largeDataSetNumTopics = 15_000_000;
+    private int largeDataSetNumTopics = 1000; // 15_000_000;
     private int largeDataSetMaxLevels = 6;
     private int vocabularySize = 10; // number of letters in the alphabet that we use for topics.
 
-    public double getChanceOfGT() {
-        return chanceOfGT;
-    }
+    public boolean isBeer() { return beer; }
 
-    public void setChanceOfGT(double chanceOfGT) {
-        this.chanceOfGT = chanceOfGT;
-    }
+    public void setBeer(boolean beer) { this.beer = beer; }
+
+    public double getChanceOfGT() { return chanceOfGT; }
+
+    public void setChanceOfGT(double chanceOfGT) { this.chanceOfGT = chanceOfGT; }
 
     public double getChanceOfPrefix() { return chanceOfPrefix; }
 

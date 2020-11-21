@@ -12,18 +12,15 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-@Component
-public class TopicGenerator {
+//@Component
+public class AlphabetTopicGenerator extends AbstractTopicGenerator {
     @Autowired
     Config config;
-    private Logger log = LoggerFactory.getLogger(TopicGenerator.class);
+    private Logger log = LoggerFactory.getLogger(AlphabetTopicGenerator.class);
     private StringBuilder topicStringBuilder = new StringBuilder();
     private StringBuilder levelStringBuilder = new StringBuilder();
     private Map<String, Topic> topicHash = new HashMap();
     private Random random = new Random();
-    private String idFormat;
-
-    private static AtomicInteger lastId = new AtomicInteger();
 
     public List<Topic> getPublisherTopics() {
         return getTopics(PubOrSub.pub);
@@ -63,7 +60,7 @@ public class TopicGenerator {
         return topicHash.values().stream().collect(Collectors.toList());
     }
 
-    protected Topic generateTopic(PubOrSub pub_or_sub, String id) {
+    public Topic generateTopic(PubOrSub pub_or_sub, String id) {
         topicStringBuilder.delete(0, topicStringBuilder.length());
         List<String> topicLevels = new ArrayList<>();
         int levels =
@@ -139,12 +136,13 @@ public class TopicGenerator {
 
     public List<Topic> getKnownSubscriberTopics() {
         List<Topic> topics = new ArrayList<>();
-        addKnownTopic(topics,"T5", "A*/BBB/CCC");
-        addKnownTopic(topics,"T1", "AAA/B*/>");
-        addKnownTopic(topics,"T2", "AAA/BB*/>");
-        addKnownTopic(topics,"T3", "AAA/BBB/C*");
-        addKnownTopic(topics,"T3", "AAA/BBB/CCC");
-        addKnownTopic(topics,"T4", "A/*/*");
+//        addKnownTopic(topics,"T1", "A*/BBB/CCC");
+//        addKnownTopic(topics,"T2", "AAA/B*/>");
+//        addKnownTopic(topics,"T3", "AAA/BB*/>");
+//        addKnownTopic(topics,"T4", "AAA/BBB/C*");
+//        addKnownTopic(topics,"T5", "AAA/BBB/CCC");
+//        addKnownTopic(topics,"T6", "A/*/*");
+        addKnownTopic(topics,"T1", ">");
         return topics;
     }
 
@@ -166,17 +164,4 @@ public class TopicGenerator {
         log.info("Generated {}", topic);
     }
 
-    public String getNextId() {
-
-        if (idFormat == null) {
-            // If we have 10-99 topics, each has an id like T09.
-            // If we have 100-999, each has an id like T009 and so on.
-            // So if we have 100 topics our format string will look like T%03d
-            double sizef = Math.pow(config.getNumTopics(), .10);
-            int idLength = (int) Math.round(sizef) + 1;
-            idFormat = String.format("T%%0%dd", idLength);
-        }
-
-        return String.format(idFormat, lastId.incrementAndGet());
-    }
 }

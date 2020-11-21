@@ -1,7 +1,8 @@
 package com.solace.maas.topicmatcher;
 
+import com.solace.maas.topicmatcher.service.AbstractTopicGenerator;
 import com.solace.maas.topicmatcher.service.TopicAnalyzer;
-import com.solace.maas.topicmatcher.service.TopicGenerator;
+import com.solace.maas.topicmatcher.service.AlphabetTopicGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -21,7 +22,7 @@ public class PerformanceTests {
     Config config;
 
     @Autowired
-    TopicGenerator topicGenerator;
+    AbstractTopicGenerator topicGenerator;
 
     TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
     TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
@@ -37,7 +38,7 @@ public class PerformanceTests {
     public void testAMillion() {
 
         log.info("Analyzing...");
-        subscriberAnalyzer.analyze(PubOrSub.sub, topicGenerator.getSubscriberTopics());
+        subscriberAnalyzer.analyze(PubOrSub.sub, topicGenerator.getTopics(PubOrSub.sub));
         log.info("Searching...");
         doSearch(PubOrSub.pub, "AA/BB/CC");
         doSearch(PubOrSub.pub, "A/B/C");

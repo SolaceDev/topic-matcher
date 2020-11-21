@@ -23,7 +23,7 @@ public class TopicService {
     Config config;
 
     @Autowired
-    TopicGenerator topicGenerator;
+    AbstractTopicGenerator topicGenerator;
 
     @Autowired
     private ConfigurableEnvironment configurableEnvironment;
@@ -53,9 +53,10 @@ public class TopicService {
     }
 
     public void init() {
-        publisherTopics = topicGenerator.getPublisherTopics();
-        subscriberTopics = topicGenerator.getSubscriberTopics();
+        publisherTopics = topicGenerator.getTopics(PubOrSub.pub);
+        subscriberTopics = topicGenerator.getTopics(PubOrSub.sub);
         createApplications();
+        analyze();
     }
 
     private void computeAppSubscriptions(Application application) {
@@ -75,7 +76,7 @@ public class TopicService {
                 topicsMatchingSubscriptions.put(sub, matchingForThisSub);
             }
 
-            matchingTopics.addAll(matchingForThisSub); // next: store in app field.
+            matchingTopics.addAll(matchingForThisSub);
         }
 
         application.setTopicsMatchingSubscriptions(new ArrayList<>(matchingTopics));
