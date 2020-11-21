@@ -81,73 +81,70 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
     public List<String> findMatchingTopics(String subscription) {
         String[] levels = subscription.split("/");
         List<String> matches = new ArrayList<>();
-        findMatchingTopics(levels, ROOT, matches);
+        findMatchingTopics(levels, matches);
         return matches;
     }
 
     // TODO: recursion must be reworked either via appropriate while loop or via queue
     public void findMatchingTopics(String[] levels,
-                                   TreeLevel parent,
                                    List<String> matches) {
-        // depth of a parent level matches with the index of the levels array
-        int index = parent.getDepth();
-        if (index >= levels.length) {
-            return;
-        }
-        boolean isLeafLevel = false;
-        if (index == levels.length - 1) {
-            isLeafLevel = true;
-        }
-        if (levels[index].equals("*")) {
-            if (isLeafLevel) {
-                Set<TreeLevel> leafSiblings = parent.getChildren().stream()
-                        .filter(TreeLevel::isLeaf)
-                        .collect(Collectors.toSet());
-                for (TreeLevel leafLevel : leafSiblings) {
-                    matches.add(leafLevel.getFullPath());
-                }
-            } else {
-                // is not leaf
-                Set<TreeLevel> nonLeafSiblings = parent.getChildren().stream()
-                        .filter(lvl -> !lvl.isLeaf())
-                        .collect(Collectors.toSet());
-                for (TreeLevel nonLeafLevel : nonLeafSiblings) {
-                    findMatchingTopics(levels, nonLeafLevel, matches);
-                }
+        Queue<TreeLevel> parentQ = new LinkedList<>();
+        parentQ.add(ROOT);
+        while (!parentQ.isEmpty()) {
+            TreeLevel parent = parentQ.remove();
+            // depth of a parent level matches with the index of the levels array
+            int index = parent.getDepth();
+            boolean isLeafLevel = false;
+            if (index == levels.length - 1) {
+                isLeafLevel = true;
             }
-        } else if (levels[index].endsWith("*")) {
-            if (isLeafLevel) {
-                Set<TreeLevel> leafMatchedLevels = getLevelsFilteredByPrefix(levels[index], parent.getChildren(), TreeLevel::isLeaf);
-                for (TreeLevel leafLevel : leafMatchedLevels) {
-                    matches.add(leafLevel.getFullPath());
-                }
-            } else {
-                // is not leaf
-                Set<TreeLevel> nonLeafMatchedLevels = getLevelsFilteredByPrefix(levels[index], parent.getChildren(), lvl -> !lvl.isLeaf());
-                for (TreeLevel nonLeafLevel : nonLeafMatchedLevels) {
-                    findMatchingTopics(levels, nonLeafLevel, matches);
-                }
-            }
-        } else if (levels[index].equals(">")) {
-            Queue<TreeLevel> q = new LinkedList<>(parent.getChildren());
-            while (!q.isEmpty()) {
-                TreeLevel current = q.remove();
-                if (current.isLeaf()) {
-                    matches.add(current.getFullPath());
-                } else {
-                    // adding children of a current level
-                    q.addAll(current.getChildren());
-                }
-            }
-        } else {
-            // matching against regular level, no wildcards detected
-            TreeLevel toMatch = new TreeLevel(levels[index], parent, isLeafLevel);
-            if (parent.getChildren().contains(toMatch)) {
-                TreeLevel current = parent.getChild(toMatch);
+            if (levels[index].equals("*")) {
                 if (isLeafLevel) {
-                    matches.add(current.getFullPath());
+                    Set<TreeLevel> leafSiblings = parent.getChildren().stream()
+                            .filter(TreeLevel::isLeaf)
+                            .collect(Collectors.toSet());
+                    for (TreeLevel leafLevel : leafSiblings) {
+                        matches.add(leafLevel.getFullPath());
+                    }
                 } else {
-                    findMatchingTopics(levels, current, matches);
+                    // is not leaf
+                    Set<TreeLevel> nonLeafSiblings = parent.getChildren().stream()
+                            .filter(lvl -> !lvl.isLeaf())
+                            .collect(Collectors.toSet());
+                    parentQ.addAll(nonLeafSiblings);
+                }
+            } else if (levels[index].endsWith("*")) {
+                if (isLeafLevel) {
+                    Set<TreeLevel> leafMatchedLevels = getLevelsFilteredByPrefix(levels[index], parent.getChildren(), TreeLevel::isLeaf);
+                    for (TreeLevel leafLevel : leafMatchedLevels) {
+                        matches.add(leafLevel.getFullPath());
+                    }
+                } else {
+                    // is not leaf
+                    Set<TreeLevel> nonLeafMatchedLevels = getLevelsFilteredByPrefix(levels[index], parent.getChildren(), lvl -> !lvl.isLeaf());
+                    parentQ.addAll(nonLeafMatchedLevels);
+                }
+            } else if (levels[index].equals(">")) {
+                Queue<TreeLevel> q = new LinkedList<>(parent.getChildren());
+                while (!q.isEmpty()) {
+                    TreeLevel current = q.remove();
+                    if (current.isLeaf()) {
+                        matches.add(current.getFullPath());
+                    } else {
+                        // adding children of a current level
+                        q.addAll(current.getChildren());
+                    }
+                }
+            } else {
+                // matching against regular level, no wildcards detected
+                TreeLevel toMatch = new TreeLevel(levels[index], parent, isLeafLevel);
+                if (parent.getChildren().contains(toMatch)) {
+                    TreeLevel current = parent.getChild(toMatch);
+                    if (isLeafLevel) {
+                        matches.add(current.getFullPath());
+                    } else {
+                        parentQ.add(current);
+                    }
                 }
             }
         }
@@ -172,7 +169,6 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
     public Object getTopicTree() {
         return null;
     }
-
 
     private static class TreeLevel {
         private static final long UNSET_ID = -1;

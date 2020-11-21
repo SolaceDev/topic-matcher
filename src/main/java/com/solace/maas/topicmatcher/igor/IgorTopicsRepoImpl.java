@@ -95,10 +95,7 @@ public class IgorTopicsRepoImpl implements TopicsRepo {
             }
         } else if (levels[depth - 1].endsWith("*")) {
             if (isLeafLevel) {
-                Set<Level> leafMatchedLevels = getLevelsFilteredByPrefix(
-                        levels[depth - 1],
-                        siblings,
-                        Level::isLeaf);
+                Set<Level> leafMatchedLevels = getLevelsFilteredByPrefix(levels[depth - 1], siblings, Level::isLeaf);
 
                 for (Level leafLevel : leafMatchedLevels) {
                     matches.add(topicPath + leafLevel.getName());
