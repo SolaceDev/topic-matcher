@@ -12,15 +12,15 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-@Component
-public class TopicGenerator {
+//@Component
+public class AlphabetTopicGenerator extends AbstractTopicGenerator {
     @Autowired
     Config config;
-    private Logger log = LoggerFactory.getLogger(TopicGenerator.class);
-    private StringBuilder stringBuilder = new StringBuilder();
+    private Logger log = LoggerFactory.getLogger(AlphabetTopicGenerator.class);
+    private StringBuilder topicStringBuilder = new StringBuilder();
+    private StringBuilder levelStringBuilder = new StringBuilder();
     private Map<String, Topic> topicHash = new HashMap();
-
-    private static AtomicInteger lastId = new AtomicInteger();
+    private Random random = new Random();
 
     public List<Topic> getPublisherTopics() {
         return getTopics(PubOrSub.pub);
@@ -33,7 +33,13 @@ public class TopicGenerator {
     public List<Topic> getTopics(PubOrSub pub_or_sub) {
         log.info("Generating {} topics...", pub_or_sub);
         topicHash.clear();
+
+        if (config.isHardCodedTopics()) {
+            return getKnownTopics(pub_or_sub);
+        }
+
         Set<String> topics = new HashSet<>();
+
 
         int numTopics = config.isLargeDataSet() ? config.getLargeDataSetNumTopics() : config.getNumTopics();
 
@@ -54,48 +60,66 @@ public class TopicGenerator {
         return topicHash.values().stream().collect(Collectors.toList());
     }
 
-    protected Topic generateTopic(PubOrSub pub_or_sub, String id) {
-        stringBuilder.delete(0, stringBuilder.length());
+    public Topic generateTopic(PubOrSub pub_or_sub, String id) {
+        topicStringBuilder.delete(0, topicStringBuilder.length());
         List<String> topicLevels = new ArrayList<>();
         int levels =
                 config.getMinLevels() + (int) (Math.random() * (config.getMaxLevels() - config.getMinLevels() + 1));
 
         for (int level = 0; level < levels; level++) {
+            levelStringBuilder.delete(0, levelStringBuilder.length());
             char c = ' '; // to be replaced soon.
+            String levelString = null;
+            boolean isLeafNode = level == levels - 1;
 
             // If publishing, we can't have wildcards.
             // If subscribing we can have wildcards, but > must be at the lowest level.
             if (pub_or_sub == PubOrSub.pub) {
-                c = (char) ('A' + (int) (Math.random() * config.getVocabularySize()));
+                levelString = getLevelString(false);
             } else {
-                boolean isLeafNode = level == levels - 1;
-                double chance = Math.random();
+                double chance = random.nextDouble();
 
                 if (isLeafNode) {
                     // here we can have a literal, * or >
                     if (chance < config.getChanceOfGT()) {
-                        c = '>';
+                        levelString = ">";
                     } else if (chance <= config.getChanceOfStar() + config.getChanceOfGT()) {
-                        c = '*';
+                        levelString = "*";
                     } else {
-                        c = (char) ('A' + (int) (Math.random() * config.getVocabularySize()));
+                        levelString = getLevelString(true);
                     }
                 } else {
                     if (chance <= config.getChanceOfStar()) {
-                        c = '*';
+                        levelString = "*";
                     } else {
-                        c = (char) ('A' + (int) (Math.random() * config.getVocabularySize()));
+                        levelString = getLevelString(true);
                     }
                 }
             }
 
-            topicLevels.add(String.valueOf(c));
-            stringBuilder.append(c);
-            if (level < levels - 1) {
-                stringBuilder.append('/');
+            topicLevels.add(levelString);
+            topicStringBuilder.append(levelString);
+
+            if (!isLeafNode) {
+                topicStringBuilder.append('/');
             }
         }
-        return new Topic(id, levels, stringBuilder.toString(), topicLevels);
+        return new Topic(id, levels, topicStringBuilder.toString(), topicLevels);
+    }
+
+    private String getLevelString(boolean allowPrefix) {
+        boolean isPrefix = allowPrefix && random.nextDouble() < config.getChanceOfPrefix();
+        int maxLength = isPrefix ? config.getMaxLevelLength() - 1 : config.getMaxLevelLength();
+        int len = random.nextInt(maxLength) + 1;
+        for (int i = 0; i < len; i++) {
+            char c = (char) ('A' + random.nextInt(config.getVocabularySize()));
+            levelStringBuilder.append(c);
+        }
+        if (isPrefix) {
+            levelStringBuilder.append("*");
+        }
+
+        return levelStringBuilder.toString();
     }
 
     public Topic getTopic(String id) {
@@ -106,18 +130,32 @@ public class TopicGenerator {
         return topicHash.get(id).getTopicString();
     }
 
-    public List<Topic> getKnownTopics() {
+    public List<Topic> getKnownTopics(PubOrSub pubSub) {
+        return pubSub == PubOrSub.pub ? getKnownPublisherTopics() : getKnownSubscriberTopics();
+    }
+
+    public List<Topic> getKnownSubscriberTopics() {
         List<Topic> topics = new ArrayList<>();
-        addKnownTopic(topics,"T1", "F/*/>");
-        addKnownTopic(topics,"T2", "A/>");
-        addKnownTopic(topics,"T3", "A/*/>");
-        addKnownTopic(topics,"T4", "A/*/*");
-        addKnownTopic(topics,"T5", "B/>");
-        addKnownTopic(topics,"T6", "B/*/>");
-        addKnownTopic(topics,"T7", "B/*/*");
-        addKnownTopic(topics,"T8", "C/F/E");
+//        addKnownTopic(topics,"T1", "A*/BBB/CCC");
+//        addKnownTopic(topics,"T2", "AAA/B*/>");
+//        addKnownTopic(topics,"T3", "AAA/BB*/>");
+//        addKnownTopic(topics,"T4", "AAA/BBB/C*");
+//        addKnownTopic(topics,"T5", "AAA/BBB/CCC");
+//        addKnownTopic(topics,"T6", "A/*/*");
+        addKnownTopic(topics,"T1", ">");
         return topics;
     }
+
+    public List<Topic> getKnownPublisherTopics() {
+        List<Topic> topics = new ArrayList<>();
+        addKnownTopic(topics,"T1", "AAA/BBB/CCC");
+        addKnownTopic(topics,"T2", "A/B/C");
+        addKnownTopic(topics,"T3", "AAA/F/C");
+        addKnownTopic(topics,"T4", "A/BB/CC");
+        addKnownTopic(topics,"T5", "AA/B/CCC");
+        return topics;
+    }
+
 
     private void addKnownTopic(List<Topic> topics, String id, String topicString) {
         Topic topic = new Topic(id, topicString);
@@ -126,7 +164,4 @@ public class TopicGenerator {
         log.info("Generated {}", topic);
     }
 
-    public String getNextId() {
-        return "T" + lastId.incrementAndGet();
-    }
 }

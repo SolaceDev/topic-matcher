@@ -24,6 +24,7 @@ public class BeerGeneratorTest {
 
     @Test
     public void testSubscriptionFromOrderTopic() {
+        log.info("testSubscriptionFromOrderTopic:");
         String topic = generator.generateOrderTopic();
         log.info(topic);
         log.info(generator.generateSubscription(topic));
@@ -31,6 +32,7 @@ public class BeerGeneratorTest {
 
     @Test
     public void testSubscriptionFromDeliveryTopic() {
+        log.info("testSubscriptionFromDeliveryTopic:");
         String topic = generator.generateDeliveryTopic();
         log.info(topic);
         log.info(generator.generateSubscription(topic));
@@ -38,6 +40,7 @@ public class BeerGeneratorTest {
 
     @Test
     public void testDeliverySubscriptionGenerator() {
+        log.info("testDeliverySubscriptionGenerator:");
         IntStream.range(0, 5).forEach(i -> {
             log.info(generator.generateDeliverySubscription());
             log.info(generator.generateOrderSubscription());

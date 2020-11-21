@@ -7,10 +7,12 @@ import com.solace.maas.topicmatcher.model.Topic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class TopicService {
@@ -21,52 +23,60 @@ public class TopicService {
     Config config;
 
     @Autowired
-    TopicGenerator topicGenerator;
+    AbstractTopicGenerator topicGenerator;
 
-    private TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
-    private TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
-    private List<Application> applications = new ArrayList<>();
-    private Map<String, Application> applicationsById = new HashMap<>();
-    private Map<String, List<Application>> subscribingTopicToApplications = new HashMap<>();
-    private Map<String, List<Application>> publishingTopicToApplications = new HashMap<>();
-    private Map<String, List<String>> topicsMatchingSubscriptions = new HashMap<>();
+    @Autowired
+    private ConfigurableEnvironment configurableEnvironment;
+
+    private final TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
+    private final TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
+    private final List<Application> applications = new ArrayList<>();
+    private final Map<String, Application> applicationsById = new HashMap<>();
+    // We're not doing anything with these yet...
+
+    //private Map<String, List<Application>> subscribingTopicToApplications = new HashMap<>();
+    //private Map<String, List<Application>> publishingTopicToApplications = new HashMap<>();
+
+    private final Map<String, List<String>> topicsMatchingSubscriptions = new HashMap<>();
 
     private List<Topic> publisherTopics;
     private List<Topic> subscriberTopics;
 
     @PostConstruct
-    public void init() {
 
-        log.info("init: largeDataSet: {}", config.isLargeDataSet());
-        applications.clear();
-        applicationsById.clear();
-        topicsMatchingSubscriptions.clear();
-
-        publisherTopics = topicGenerator.getPublisherTopics();
-        subscriberTopics = topicGenerator.getSubscriberTopics();
-
-        if (!config.isLargeDataSet()) {
-            createApplications();
+    public void postConstruct() {
+        String[] activeProfiles = configurableEnvironment.getActiveProfiles();
+        Set profiles = Arrays.stream(activeProfiles).collect(Collectors.toSet());
+        if (!profiles.contains("test")) {
+            init();
         }
-        analyze();
+    }
 
+    public void init() {
+        publisherTopics = topicGenerator.getTopics(PubOrSub.pub);
+        subscriberTopics = topicGenerator.getTopics(PubOrSub.sub);
+        createApplications();
+        analyze();
     }
 
     private void computeAppSubscriptions(Application application) {
         Set<String> matchingTopics = new HashSet<>();
 
-        for (Topic sub : subscriberTopics) {
-            List<Application> appsForThisTopic = subscribingTopicToApplications.computeIfAbsent(sub.getTopicString(), k -> new ArrayList<>());
+        for (String sub : application.getSubscribingTopics()) {
+            /* We're not using this yet.
+            List<Application> appsForThisTopic = subscribingTopicToApplications.computeIfAbsent(sub.getTopicString(),
+             k -> new ArrayList<>());
             appsForThisTopic.add(application);
+            */
 
             // Find the matching published topics
-            List<String> matchingForThisSub = topicsMatchingSubscriptions.get(sub.getTopicString());
+            List<String> matchingForThisSub = topicsMatchingSubscriptions.get(sub);
             if (matchingForThisSub == null) {
-                matchingForThisSub = publisherAnalyzer.matchFromSubscriber(sub.getTopicString());
-                topicsMatchingSubscriptions.put(sub.getTopicString(), matchingForThisSub);
+                matchingForThisSub = publisherAnalyzer.matchFromSubscriber(sub);
+                topicsMatchingSubscriptions.put(sub, matchingForThisSub);
             }
 
-            matchingTopics.addAll(matchingForThisSub); // next: store in app field.
+            matchingTopics.addAll(matchingForThisSub);
         }
 
         application.setTopicsMatchingSubscriptions(new ArrayList<>(matchingTopics));
@@ -100,8 +110,8 @@ public class TopicService {
     }
 
     public void analyze() {
-        publisherAnalyzer.analyze(publisherTopics);
-        subscriberAnalyzer.analyze(subscriberTopics);
+        publisherAnalyzer.analyze(PubOrSub.pub, publisherTopics);
+        subscriberAnalyzer.analyze(PubOrSub.sub, subscriberTopics);
 
         for (Application application : applications) {
             computeAppSubscriptions(application);

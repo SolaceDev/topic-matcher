@@ -9,12 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.event.annotation.BeforeTestClass;
 import org.springframework.test.context.event.annotation.BeforeTestMethod;
 
 import java.util.List;
 
 @SpringBootTest
+@ActiveProfiles("test")
 class MainTests {
 
     private final Logger log = LoggerFactory.getLogger(MainTests.class);
@@ -25,40 +27,28 @@ class MainTests {
     @Autowired
     TopicService topicService;
 
-    //@BeforeTestMethod
     @BeforeEach
     public void init() {
-        log.info("BEFORE --------------------------------");
-        config.setLargeDataSet(true);
+        config.setHardCodedTopics(true);
+        //config.setMaxLevelLength(20);
         topicService.init();
     }
 
     @Test
     void testMatching() {
-        testPublisherToSubscriber();
+        //testPublisherToSubscriber();
         testSubscriberToPublisher();
     }
 
     private void testPublisherToSubscriber() {
         log.info("Matching publisher to subscribers");
-        doSearch(PubOrSub.pub, "A");
-        doSearch(PubOrSub.pub,"A/A");
-        doSearch(PubOrSub.pub,"A/A/A");
-        doSearch(PubOrSub.pub,"A/B/C");
-        doSearch(PubOrSub.pub,"B/A/A");
-        doSearch(PubOrSub.pub,"B/C/C/E");
-        doSearch(PubOrSub.pub,"B");
+        doSearch(PubOrSub.pub, "AAA/BBB/CCC");
     }
 
     private void testSubscriberToPublisher() {
         log.info("Matching subscriber to publishers");
-        doSearch( PubOrSub.sub, "A");
-        doSearch( PubOrSub.sub, "A/*");
-        doSearch( PubOrSub.sub, "A/*/B/>");
-        doSearch( PubOrSub.sub, "A/*/*/F/*");
-        doSearch( PubOrSub.sub, "A/B/C/E/F");
-        doSearch( PubOrSub.sub, "A/>");
-        doSearch( PubOrSub.sub, ">");
+        //doSearch( PubOrSub.sub, "A/>");
+        doSearch( PubOrSub.sub, "AA*/*/CCC");
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {
