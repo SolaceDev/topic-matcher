@@ -6,7 +6,12 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TopicAnalyzer {
@@ -47,7 +52,7 @@ public class TopicAnalyzer {
         for (int i = 0; i < levels.length; i++) {
             String levelToMatch = levels[i];
             boolean isLeafNode = i == levels.length - 1;
-            log.debug("Level to match: {} {} leaf: {}", i, levelToMatch, isLeafNode);
+            log.debug("TreeLevel to match: {} {} leaf: {}", i, levelToMatch, isLeafNode);
             final int lev = i; // for use in lamdas
 
             // Special case: match all
@@ -114,7 +119,7 @@ public class TopicAnalyzer {
         for (int i = 0; i < levels.length; i++) {
             String levelToMatch = levels[i];
             boolean isLeafNode = i == levels.length - 1;
-            log.debug("Level to match: {} {} leaf: {}", i, levelToMatch, isLeafNode);
+            log.debug("TreeLevel to match: {} {} leaf: {}", i, levelToMatch, isLeafNode);
             final int lev = i; // for use in lamdas which need i to be final.
 
             if (maps.size() <= i) {

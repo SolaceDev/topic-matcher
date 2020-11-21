@@ -60,7 +60,7 @@ public class Level {
 
     @Override
     public String toString() {
-        return "Level{" +
+        return "TreeLevel{" +
                 "depth=" + depth +
                 ", name='" + name + '\'' +
                 ", parent='" + parent + '\'' +

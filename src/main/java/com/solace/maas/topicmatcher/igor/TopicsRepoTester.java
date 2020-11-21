@@ -13,7 +13,7 @@ public class TopicsRepoTester {
     }
 
     public static void main(String[] args) {
-        TopicsRepo topicsRepo = new IgorTopicsRepoImpl();
+        TopicsRepo topicsRepo = new IgorTopicsRepoTreeImpl();
         topicsRepo.registerTopic("a/b/c");
         topicsRepo.registerTopic("a/b/ccccccc");
         topicsRepo.registerTopic("a/bvvvvv/c");
