@@ -84,8 +84,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
         findMatchingTopics(levels, matches);
         return matches;
     }
-
-    // TODO: recursion must be reworked either via appropriate while loop or via queue
+    
     public void findMatchingTopics(String[] levels,
                                    List<String> matches) {
         Queue<TreeLevel> parentQ = new LinkedList<>();
