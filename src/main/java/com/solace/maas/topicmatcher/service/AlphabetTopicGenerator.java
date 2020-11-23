@@ -136,13 +136,14 @@ public class AlphabetTopicGenerator extends AbstractTopicGenerator {
 
     public List<Topic> getKnownSubscriberTopics() {
         List<Topic> topics = new ArrayList<>();
-//        addKnownTopic(topics,"T1", "A*/BBB/CCC");
-//        addKnownTopic(topics,"T2", "AAA/B*/>");
-//        addKnownTopic(topics,"T3", "AAA/BB*/>");
-//        addKnownTopic(topics,"T4", "AAA/BBB/C*");
-//        addKnownTopic(topics,"T5", "AAA/BBB/CCC");
-//        addKnownTopic(topics,"T6", "A/*/*");
-        addKnownTopic(topics,"T1", ">");
+        addKnownTopic(topics,"T1", "*/B*/C*");
+        addKnownTopic(topics,"T2", "A*/BB/CC");
+        addKnownTopic(topics,"T3", "AAA/B*/>");
+        addKnownTopic(topics,"T4", "AAA/BB*/>");
+        addKnownTopic(topics,"T5", "AAA/BBB/C*");
+        addKnownTopic(topics,"T6", "AAA/BBB/CCC");
+        addKnownTopic(topics,"T7", "A/*/*");
+        addKnownTopic(topics,"T8", ">");
         return topics;
     }
 

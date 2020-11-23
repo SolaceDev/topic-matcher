@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class Config {
 
     private double appToTopicRatio = 0.3; // chance that an app will be assigned a particular topic
-    private boolean beer = true; // If true, we use the Beer topic generator.
+    private boolean beer = false; // If true, we use the Beer topic generator.
     private double chanceOfGT = 0.2;  // Chance that a leaf node on a subscription will be >
     private double chanceOfPrefix = 0.4; // Chance that a level on a subscription will have a prefixed *
     private double chanceOfStar = 0.4; // Chance that a level on a subscription will be a *
