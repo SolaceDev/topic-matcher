@@ -7,12 +7,17 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-public class TopicAnalyzer2 {
+public class TopicAnalyzerOrig {
 
-    private final Logger log = LoggerFactory.getLogger(TopicAnalyzer2.class);
+    private final Logger log = LoggerFactory.getLogger(TopicAnalyzerOrig.class);
     private Map<Integer, Map<String, List<Pair<String, Integer>>>> maps = new HashMap(); // level -> value ->
     // topicId,length
     private Map<Integer, Prefix> prefixMap = new HashMap(); // Level,
@@ -28,25 +33,12 @@ public class TopicAnalyzer2 {
         maps.clear();
         prefixMap.clear();
         topicIdToTopicString.clear();
-        int maxLevel = 0;
 
         for (Topic topic : topics) {
             allTopicStrings.add(topic.getTopicString());
             topicIdToTopicString.put(topic.getId(), topic.getTopicString());
             int numLevels = topic.getNumLevels();
-            if (numLevels > maxLevel) {
-                maxLevel = numLevels;
-            }
-        }
 
-        int estimatedValuesPerLevel = topics.size() / maxLevel;
-        float hashLoadFactor = 0.99f;
-        double fudgeFactor = 1.2;
-        int hashCapacity = (int) ((estimatedValuesPerLevel * fudgeFactor) / hashLoadFactor);
-        log.info("max level: {} estimatedValuesPerLevel: {} hashCapacity: {}", maxLevel, estimatedValuesPerLevel, hashCapacity);
-
-        for (Topic topic : topics) {
-            int numLevels = topic.getNumLevels();
             for (int level = 0; level < numLevels; level++) {
                 String levelString = topic.getLevel(level);
                 boolean handledPrefix = false;
@@ -74,7 +66,7 @@ public class TopicAnalyzer2 {
                             Map<String, List<Pair<String, Integer>>> topicMapForLength =
                                     prefix.getTopics(prefixLength);
                             if (topicMapForLength == null) {
-                                topicMapForLength = new HashMap<>(hashCapacity, hashLoadFactor);
+                                topicMapForLength = new HashMap<>();
                                 prefix.setTopics(prefixLength, topicMapForLength);
                             }
 
@@ -173,27 +165,19 @@ public class TopicAnalyzer2 {
                 matchingTopicsAtThisLevel = new ArrayList<>(matchingTopicsAtThisLevel); // Cloning so we can remove
                 // some.
 
-                Set<Pair<String, Integer>> matchingAtThisLevel = new HashSet<>();
-
-                for (Pair<String,Integer> t : matchingTopicsAtThisLevel) {
-                    if (!isLeafNode || t.getRight() <= level + 1) {
-                        matchingAtThisLevel.add(t);
-                    }
+                if (isLeafNode) {
+                    matchingTopicsAtThisLevel.removeIf(p -> p.getRight() > lev + 1);
                 }
 
+                Set<Pair<String, Integer>> matchingAtThisLevel =
+                        matchingTopicsAtThisLevel.stream().collect(Collectors.toSet());
                 log.debug("current set: {} matching at this level: {}", matching.size(), matchingAtThisLevel.size());
                 if (level == 0) {
                     matching = matchingAtThisLevel;
                 } else {
-                    matching.retainAll(matchingAtThisLevel);
-//                    HashSet<Pair<String, Integer>> matchingClone = new HashSet<>(Math.max(matching.size(),
-//                            matchingAtThisLevel.size()));
-//                    for (Pair<String, Integer> t : matching) {
-//                        if (matchingAtThisLevel.contains(t)) {
-//                            matchingClone.add(t);
-//                        }
-//                    }
-//                    matching = matchingClone;
+                    Set<String> topicsThisLevel =
+                            matchingAtThisLevel.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
+                    matching.removeIf(p -> !topicsThisLevel.contains(p.getLeft()));
                 }
                 log.debug("Resulting set: {}", matching.size());
                 if (matching.size() == 0) {
@@ -202,12 +186,8 @@ public class TopicAnalyzer2 {
             }
         }
 
-        List<String> ret = new ArrayList<>(matching.size());
-
-        for (Pair<String, Integer> match : matching) {
-            ret.add(topicIdToTopicString.get(match.getLeft()));
-        }
-
+        List<String> matchingIds = matching.stream().map(p -> p.getLeft()).collect(Collectors.toList());
+        List<String> ret = matchingIds.stream().map(id -> topicIdToTopicString.get(id)).collect(Collectors.toList());
         return ret;
     }
 
@@ -294,7 +274,7 @@ public class TopicAnalyzer2 {
 
             Set<Pair<String, Integer>> matchingAtThisLevel =
                     matchingTopicsAtThisLevel.stream().collect(Collectors.toSet());
-            log.debug("current set: {} matching at this level: {}", matching.size(), matchingAtThisLevel.size());
+            log.debug("current set: {} matching at this level: {}", matching, matchingAtThisLevel);
             if (level == 0) {
                 matching.addAll(matchingAtThisLevel);
             } else {
@@ -304,7 +284,7 @@ public class TopicAnalyzer2 {
                 //existingTopics.
                 matching.removeIf(p -> !topicsThisLevel.contains(p.getLeft()));
             }
-            log.debug("Resulting set: {}", matching.size());
+            log.debug("Resulting set: {}", matching);
 
         }
 

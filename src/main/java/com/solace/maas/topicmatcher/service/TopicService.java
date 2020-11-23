@@ -28,8 +28,8 @@ public class TopicService {
     @Autowired
     private ConfigurableEnvironment configurableEnvironment;
 
-    private final TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
-    private final TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
+    private final TopicAnalyzerOrig publisherAnalyzer = new TopicAnalyzerOrig();
+    private final TopicAnalyzerOrig subscriberAnalyzer = new TopicAnalyzerOrig();
     private final List<Application> applications = new ArrayList<>();
     private final Map<String, Application> applicationsById = new HashMap<>();
     // We're not doing anything with these yet...

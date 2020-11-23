@@ -1,9 +1,13 @@
 package com.solace.maas.topicmatcher;
 
+import com.solace.maas.topicmatcher.carlstitching.CriteriaSubscription;
+import com.solace.maas.topicmatcher.carlstitching.CriteriaTopic;
+import com.solace.maas.topicmatcher.carlstitching.SubscriptionMatcher;
 import com.solace.maas.topicmatcher.igor.IgorTopicsRepoTreeImpl;
 import com.solace.maas.topicmatcher.igor.TopicsRepo;
 import com.solace.maas.topicmatcher.model.Topic;
-import com.solace.maas.topicmatcher.service.*;
+import com.solace.maas.topicmatcher.service.AbstractTopicGenerator;
+import com.solace.maas.topicmatcher.service.TopicAnalyzer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -13,7 +17,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -26,29 +32,27 @@ public class PerformanceTests {
     @Autowired
     AbstractTopicGenerator topicGenerator;
 
-    TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
-    TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
-    TopicAnalyzer2 newAnalyzer = new TopicAnalyzer2();
-
+    TopicAnalyzer topicAnalyzer = new TopicAnalyzer();
     TopicsRepo topicsRepo = new IgorTopicsRepoTreeImpl();
+    SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
 
-    boolean testRepo = true;
-    boolean testAnalyzer = false;
-    boolean testNew = true;
+    boolean testAnalyzer = true;
+    boolean testRepo = false;
+    boolean testSubscriptionMatcher = true;
 
     @BeforeEach
     public void init() {
         config.setLargeDataSet(true);
-        config.setHardCodedTopics(false);
-        config.setLargeDataSetNumTopics(500_000);
+        config.setHardCodedTopics(true);
+        config.setLargeDataSetNumTopics(500);
         config.setMaxLevelLength(5);
         config.setMaxLevels(6);
         config.setMinLevels(3);
         config.setVocabularySize(7);
     }
 
-    //@Test
-    public void testAMillion() {
+    @Test
+    public void testMatchingTopics() {
         log.info("Generating topics...{} ", topicGenerator);
         List<Topic> topics = topicGenerator.getTopics(PubOrSub.sub);
 
@@ -58,18 +62,26 @@ public class PerformanceTests {
         if (testAnalyzer) {
             log.info("Setting up analyzer...");
             start = new Date().getTime();
-            subscriberAnalyzer.analyze(PubOrSub.sub, topics);
+            topicAnalyzer.analyze(PubOrSub.sub, topics);
             end = new Date().getTime();
             log.info("Duration: {}", end - start);
         }
 
-        if (testNew) {
-            log.info("Setting up new analyzer...");
+        if (testSubscriptionMatcher) {
+            log.info("Setting up subscription matcher...");
             start = new Date().getTime();
-            newAnalyzer.analyze(PubOrSub.sub, topics);
+
+            List<CriteriaSubscription> subscriptions = topics.stream()
+                    .map(topic -> CriteriaSubscription.builder()
+                            .matchCriteria(topic.getTopicString())
+                            .build())
+                    .collect(Collectors.toCollection(LinkedList::new));
+
+            SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
+            subscriptionMatcher.setSubscriptions(subscriptions);
+            subscriptionMatcher.parseCriterias();
             end = new Date().getTime();
             log.info("Duration: {}", end - start);
-            //newAnalyzer.dump();
         }
 
         log.info("Searching...");
@@ -81,7 +93,7 @@ public class PerformanceTests {
         log.info("Done.");
     }
 
-    @Test
+    //@Test
     public void testMatchingSubscriptions() {
         log.info("Generating topics...{} ", topicGenerator);
         List<Topic> topics = topicGenerator.getTopics(PubOrSub.pub);
@@ -102,15 +114,24 @@ public class PerformanceTests {
         if (testAnalyzer) {
             log.info("Setting up analyzer...");
             start = new Date().getTime();
-            publisherAnalyzer.analyze(PubOrSub.pub, topics);
+            topicAnalyzer.analyze(PubOrSub.pub, topics);
             end = new Date().getTime();
             log.info("Duration: {}", end - start);
         }
 
-        if (testNew) {
-            log.info("Setting up new analyzer...");
+        if (testSubscriptionMatcher) {
+            log.info("Setting up subscription matcher...");
             start = new Date().getTime();
-            newAnalyzer.analyze(PubOrSub.pub, topics);
+
+            List<CriteriaSubscription> subscriptions = topics.stream()
+                    .map(topic -> CriteriaSubscription.builder()
+                            .matchCriteria(topic.getTopicString())
+                            .build())
+                    .collect(Collectors.toCollection(LinkedList::new));
+
+            SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
+            subscriptionMatcher.setSubscriptions(subscriptions);
+            subscriptionMatcher.parseCriterias();
             end = new Date().getTime();
             log.info("Duration: {}", end - start);
         }
@@ -126,42 +147,47 @@ public class PerformanceTests {
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {
-        if (testRepo) doSearch(pubOrSub, searchTopic, true, false);
-        if (testAnalyzer) doSearch(pubOrSub, searchTopic, false, false);
-        if (testNew) doSearch(pubOrSub, searchTopic, false, true);
+        if (testRepo) doSearch(pubOrSub, searchTopic, Implementation.topicsRepo);
+        if (testAnalyzer) doSearch(pubOrSub, searchTopic, Implementation.topicAnalyzer);
+        if (testSubscriptionMatcher) doSearch(pubOrSub, searchTopic, Implementation.subscriptionMatcher);
         log.info("");
     }
-    
-    private void doSearch(PubOrSub pubOrSub, String searchTopic, boolean testTree, boolean testNew) {
+
+    private void doSearch(PubOrSub pubOrSub, String searchTopic, Implementation implementation) {
 
         List<String> matchingTopics = null;
 
         long start = new Date().getTime();
-        if (testTree) {
-            matchingTopics = topicsRepo.findMatchingTopics(searchTopic);
-        } else {
-            if (testNew) {
-                matchingTopics = pubOrSub == PubOrSub.pub ?
-                        newAnalyzer.matchFromPublisher(searchTopic) :
-                        newAnalyzer.matchFromSubscriber(searchTopic);
-            } else {
-                matchingTopics = pubOrSub == PubOrSub.pub ? subscriberAnalyzer.matchFromPublisher(searchTopic)
-                        : publisherAnalyzer.matchFromSubscriber(searchTopic);
-            }
+        switch (implementation) {
+            case topicsRepo:
+                matchingTopics = topicsRepo.findMatchingTopics(searchTopic);
+                break;
+            case topicAnalyzer:
+                matchingTopics = topicAnalyzer.match(pubOrSub, searchTopic);
+                break;
+            case subscriptionMatcher:
+                CriteriaTopic criteriaTopic = subscriptionMatcher.getSubscriptionsForTopic(searchTopic);
+                //log.info("criteriaTopic: {}", criteriaTopic);
+                matchingTopics = criteriaTopic.getSubscriptions().stream().map(s -> s.getMatchCriteria()).collect(
+                        Collectors.toList());
+                break;
+            default:
+                throw new IllegalStateException("Unsupported implementation " + implementation);
         }
+
         long end = new Date().getTime();
         long millis = end - start;
 
-        if (matchingTopics.size() > 50) {
-            log.info(String.format("Search: tree: %5s new: %5s time: %4d %16s matches: %s", testTree, testNew, millis,
+        if (matchingTopics.size() > 20) {
+            log.info(String.format("Search: impl: %19s time: %4d %16s matches: %s", implementation, millis,
                     searchTopic,
                     matchingTopics.size()));
         } else {
-            log.info(String.format("Search: tree: %5s new: %5s time: %4d %16s matches: %s", testTree, testNew, millis,
+            log.info(String.format("Search: impl: %19s time: %4d %16s matches: %s", implementation, millis,
                     searchTopic,
                     matchingTopics));
         }
     }
 
-
+    private static enum Implementation { subscriptionMatcher, topicAnalyzer, topicsRepo }
 }
