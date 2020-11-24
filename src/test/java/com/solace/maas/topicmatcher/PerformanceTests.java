@@ -44,7 +44,7 @@ public class PerformanceTests {
     public void init() {
         config.setLargeDataSet(true);
         config.setHardCodedTopics(false);
-        config.setLargeDataSetNumTopics(10_000);
+        config.setLargeDataSetNumTopics(100_000);
         config.setMaxLevelLength(5); // number of chars on each level
         config.setMaxLevels(6);  // max number of levels
         config.setMinLevels(3);
@@ -77,7 +77,7 @@ public class PerformanceTests {
                             .build())
                     .collect(Collectors.toCollection(LinkedList::new));
 
-            SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
+            subscriptionMatcher = new SubscriptionMatcher();
             subscriptionMatcher.setSubscriptions(subscriptions);
             subscriptionMatcher.parseCriterias();
             end = new Date().getTime();
