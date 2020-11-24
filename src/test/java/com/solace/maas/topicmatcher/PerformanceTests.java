@@ -142,9 +142,15 @@ public class PerformanceTests {
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {
-        if (testTopicsRepo) doSearch(pubOrSub, searchTopic, Implementation.topicsRepo);
-        if (testAnalyzer) doSearch(pubOrSub, searchTopic, Implementation.topicAnalyzer);
-        if (testSubscriptionMatcher) doSearch(pubOrSub, searchTopic, Implementation.subscriptionMatcher);
+        if (testTopicsRepo) {
+            doSearch(pubOrSub, searchTopic, Implementation.topicsRepo);
+        }
+        if (testAnalyzer) {
+            doSearch(pubOrSub, searchTopic, Implementation.topicAnalyzer);
+        }
+        if (testSubscriptionMatcher) {
+            doSearch(pubOrSub, searchTopic, Implementation.subscriptionMatcher);
+        }
         log.info("");
     }
 
@@ -184,5 +190,5 @@ public class PerformanceTests {
         }
     }
 
-    private static enum Implementation { subscriptionMatcher, topicAnalyzer, topicsRepo }
+    private static enum Implementation {subscriptionMatcher, topicAnalyzer, topicsRepo}
 }
