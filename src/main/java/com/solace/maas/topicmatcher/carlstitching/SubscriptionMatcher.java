@@ -2,7 +2,11 @@ package com.solace.maas.topicmatcher.carlstitching;
 
 import lombok.Data;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Data
@@ -82,7 +86,8 @@ public class SubscriptionMatcher {
 
         criteriaRoot.getCriteriaRoot().values().forEach(criteria -> {
             if (criteria.isMatch(piece)) {
-                if (criteria.getSubscriptions().size() > 0) {
+                if ((topicPieces.size() == 0 || CriteriaNode.CriteriaType.INHERIT.equals(criteria.getCriteriaType()))
+                        && criteria.getSubscriptions().size() > 0) {
                     topicObj.getSubscriptions().addAll(criteria.getSubscriptions());
                 }
 
@@ -105,7 +110,8 @@ public class SubscriptionMatcher {
 
         node.getChildren().values().forEach(criteria -> {
             if (criteria.isMatch(piece)) {
-                if (criteria.getSubscriptions().size() > 0) {
+                if ((pieces.size() == 0 || CriteriaNode.CriteriaType.INHERIT.equals(criteria.getCriteriaType()))
+                        && criteria.getSubscriptions().size() > 0) {
                     topic.getSubscriptions().addAll(criteria.getSubscriptions());
                 }
                 if (!CriteriaNode.CriteriaType.INHERIT.equals(criteria.getCriteriaType())
