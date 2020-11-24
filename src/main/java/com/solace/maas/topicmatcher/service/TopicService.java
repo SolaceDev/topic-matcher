@@ -3,7 +3,6 @@ package com.solace.maas.topicmatcher.service;
 import com.solace.maas.topicmatcher.Config;
 import com.solace.maas.topicmatcher.PubOrSub;
 import com.solace.maas.topicmatcher.model.Application;
-import com.solace.maas.topicmatcher.model.Topic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +27,8 @@ public class TopicService {
     @Autowired
     private ConfigurableEnvironment configurableEnvironment;
 
-    private final TopicAnalyzerOrig publisherAnalyzer = new TopicAnalyzerOrig();
-    private final TopicAnalyzerOrig subscriberAnalyzer = new TopicAnalyzerOrig();
+    private final TopicAnalyzer publisherAnalyzer = new TopicAnalyzer();
+    private final TopicAnalyzer subscriberAnalyzer = new TopicAnalyzer();
     private final List<Application> applications = new ArrayList<>();
     private final Map<String, Application> applicationsById = new HashMap<>();
     // We're not doing anything with these yet...
@@ -39,8 +38,8 @@ public class TopicService {
 
     private final Map<String, List<String>> topicsMatchingSubscriptions = new HashMap<>();
 
-    private List<Topic> publisherTopics;
-    private List<Topic> subscriberTopics;
+    private List<String> publisherTopics;
+    private List<String> subscriberTopics;
 
     @PostConstruct
 
@@ -95,14 +94,14 @@ public class TopicService {
             applications.add(application);
             applicationsById.put(name, application);
 
-            for (Topic pub : publisherTopics) {
+            for (String pub : publisherTopics) {
                 if (Math.random() < config.getAppToTopicRatio()) {
-                    application.addPublishingTopic(pub.getTopicString());
+                    application.addPublishingTopic(pub);
                 }
             }
-            for (Topic sub : subscriberTopics) {
+            for (String sub : subscriberTopics) {
                 if (Math.random() < config.getAppToTopicRatio()) {
-                    application.addSubscribingTopic(sub.getTopicString());
+                    application.addSubscribingTopic(sub);
                 }
             }
         }
@@ -149,8 +148,8 @@ public class TopicService {
             getApplication(appName).addSubscribingTopic(sub);
             analyze = true;
         }
-        if (!subscriptionFound(sub)) {
-            subscriberTopics.add(new Topic(topicGenerator.getNextId(), sub));
+        if (!subscriberTopics.contains(sub)) {
+            subscriberTopics.add(sub);
             analyze = true;
         }
         log.debug("Analyze {}", analyze);
@@ -158,12 +157,4 @@ public class TopicService {
         return getApplication(appName);
     }
 
-    private boolean subscriptionFound(String sub) {
-        for (Topic t : subscriberTopics) {
-            if (t.getTopicString().equals(sub)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

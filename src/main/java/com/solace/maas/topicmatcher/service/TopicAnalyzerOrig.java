@@ -2,7 +2,6 @@ package com.solace.maas.topicmatcher.service;
 
 import com.solace.maas.topicmatcher.PubOrSub;
 import com.solace.maas.topicmatcher.model.Prefix;
-import com.solace.maas.topicmatcher.model.Topic;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +27,13 @@ public class TopicAnalyzerOrig {
     private List<String> allTopicStrings = new ArrayList<>();
     private Map<String, String> topicIdToTopicString = new HashMap<>();
 
-    public void analyze(PubOrSub pubOrSub, List<Topic> topics) {
+    public void analyze(PubOrSub pubOrSub, List<TopicAnalyzer.Topic> topics) {
         allTopicStrings.clear();
         maps.clear();
         prefixMap.clear();
         topicIdToTopicString.clear();
 
-        for (Topic topic : topics) {
+        for (TopicAnalyzer.Topic topic : topics) {
             allTopicStrings.add(topic.getTopicString());
             topicIdToTopicString.put(topic.getId(), topic.getTopicString());
             int numLevels = topic.getNumLevels();

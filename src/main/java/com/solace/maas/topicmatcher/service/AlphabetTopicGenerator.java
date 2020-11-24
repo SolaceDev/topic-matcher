@@ -2,37 +2,39 @@ package com.solace.maas.topicmatcher.service;
 
 import com.solace.maas.topicmatcher.Config;
 import com.solace.maas.topicmatcher.PubOrSub;
-import com.solace.maas.topicmatcher.model.Topic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-//@Component
 public class AlphabetTopicGenerator extends AbstractTopicGenerator {
     @Autowired
     Config config;
     private Logger log = LoggerFactory.getLogger(AlphabetTopicGenerator.class);
     private StringBuilder topicStringBuilder = new StringBuilder();
     private StringBuilder levelStringBuilder = new StringBuilder();
-    private Map<String, Topic> topicHash = new HashMap();
     private Random random = new Random();
 
-    public List<Topic> getPublisherTopics() {
+    public List<String> getPublisherTopics() {
         return getTopics(PubOrSub.pub);
     }
 
-    public List<Topic> getSubscriberTopics() {
+    public List<String> getSubscriberTopics() {
         return getTopics(PubOrSub.sub);
     }
 
-    public List<Topic> getTopics(PubOrSub pub_or_sub) {
+    public List<String> getTopics() {
+        return getTopics(PubOrSub.sub);
+    }
+
+    public List<String> getTopics(PubOrSub pub_or_sub) {
         log.info("Generating {} topics...", pub_or_sub);
-        topicHash.clear();
 
         if (config.isHardCodedTopics()) {
             return getKnownTopics(pub_or_sub);
@@ -44,23 +46,25 @@ public class AlphabetTopicGenerator extends AbstractTopicGenerator {
         int numTopics = config.isLargeDataSet() ? config.getLargeDataSetNumTopics() : config.getNumTopics();
 
         for (int i = 0; i < numTopics; i++) {
-            String id = getNextId();
-            Topic topic = generateTopic(pub_or_sub, id);
+            String topic = generateTopic(pub_or_sub);
 
-            if (!topics.contains(topic.getTopicString())) {
-                topics.add(topic.getTopicString());
-                topicHash.put(id, topic);
-                if (config.getNumTopics() <= 200 && !config.isLargeDataSet()) {
-                    log.info(topic.toString());
+            if (!topics.contains(topic)) {
+                topics.add(topic);
+                if (config.getNumTopics() <= 20 && !config.isLargeDataSet()) {
+                    log.info(topic);
                 }
             }
         }
 
-        log.info("{} distinct topics generated.", topicHash.size());
-        return topicHash.values().stream().collect(Collectors.toList());
+        log.info("{} distinct topics generated.", topics.size());
+        return topics.stream().collect(Collectors.toList());
     }
 
-    public Topic generateTopic(PubOrSub pub_or_sub, String id) {
+    public String generateTopic() {
+        return generateTopic(PubOrSub.sub);
+    }
+
+    public String generateTopic(PubOrSub pub_or_sub) {
         topicStringBuilder.delete(0, topicStringBuilder.length());
         List<String> topicLevels = new ArrayList<>();
         int levels =
@@ -104,7 +108,7 @@ public class AlphabetTopicGenerator extends AbstractTopicGenerator {
                 topicStringBuilder.append('/');
             }
         }
-        return new Topic(id, levels, topicStringBuilder.toString(), topicLevels);
+        return topicStringBuilder.toString();
     }
 
     private String getLevelString(boolean allowPrefix) {
@@ -122,47 +126,30 @@ public class AlphabetTopicGenerator extends AbstractTopicGenerator {
         return levelStringBuilder.toString();
     }
 
-    public Topic getTopic(String id) {
-        return topicHash.get(id);
-    }
-
-    public String getTopicString(String id) {
-        return topicHash.get(id).getTopicString();
-    }
-
-    public List<Topic> getKnownTopics(PubOrSub pubSub) {
+    public List<String> getKnownTopics(PubOrSub pubSub) {
         return pubSub == PubOrSub.pub ? getKnownPublisherTopics() : getKnownSubscriberTopics();
     }
 
-    public List<Topic> getKnownSubscriberTopics() {
-        List<Topic> topics = new ArrayList<>();
-        addKnownTopic(topics,"T1", "*/B*/C*");
-        addKnownTopic(topics,"T2", "A*/BB/CC");
-        addKnownTopic(topics,"T3", "AAA/B*/>");
-        addKnownTopic(topics,"T4", "AAA/BB*/>");
-        addKnownTopic(topics,"T5", "AAA/BBB/C*");
-        addKnownTopic(topics,"T6", "AAA/BBB/CCC");
-        addKnownTopic(topics,"T7", "A/*/*");
-        addKnownTopic(topics,"T8", ">");
+    public List<String> getKnownSubscriberTopics() {
+        List<String> topics = new ArrayList<>();
+        topics.add("*/B*/C*");
+        topics.add("A*/BB/CC");
+        topics.add("AAA/B*/>");
+        topics.add("AAA/BB*/>");
+        topics.add("AAA/BBB/C*");
+        topics.add("AAA/BBB/CCC");
+        topics.add("A/*/*");
+        topics.add(">");
         return topics;
     }
 
-    public List<Topic> getKnownPublisherTopics() {
-        List<Topic> topics = new ArrayList<>();
-        addKnownTopic(topics,"T1", "AAA/BBB/CCC");
-        addKnownTopic(topics,"T2", "A/B/C");
-        addKnownTopic(topics,"T3", "AAA/F/C");
-        addKnownTopic(topics,"T4", "A/BB/CC");
-        addKnownTopic(topics,"T5", "AA/B/CCC");
+    public List<String> getKnownPublisherTopics() {
+        List<String> topics = new ArrayList<>();
+        topics.add("AAA/BBB/CCC");
+        topics.add("A/B/C");
+        topics.add("AAA/F/C");
+        topics.add("A/BB/CC");
+        topics.add("AA/B/CCC");
         return topics;
     }
-
-
-    private void addKnownTopic(List<Topic> topics, String id, String topicString) {
-        Topic topic = new Topic(id, topicString);
-        topics.add(topic);
-        topicHash.put(topic.getId(), topic);
-        log.info("Generated {}", topic);
-    }
-
 }

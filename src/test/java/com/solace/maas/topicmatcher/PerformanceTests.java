@@ -5,7 +5,6 @@ import com.solace.maas.topicmatcher.carlstitching.CriteriaTopic;
 import com.solace.maas.topicmatcher.carlstitching.SubscriptionMatcher;
 import com.solace.maas.topicmatcher.igor.IgorTopicsRepoTreeImpl;
 import com.solace.maas.topicmatcher.igor.TopicsRepo;
-import com.solace.maas.topicmatcher.model.Topic;
 import com.solace.maas.topicmatcher.service.AbstractTopicGenerator;
 import com.solace.maas.topicmatcher.service.TopicAnalyzer;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,24 +36,25 @@ public class PerformanceTests {
     SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
 
     boolean testAnalyzer = true;
-    boolean testRepo = false;
+    boolean testTopicsRepo = true;
     boolean testSubscriptionMatcher = true;
+
 
     @BeforeEach
     public void init() {
         config.setLargeDataSet(true);
-        config.setHardCodedTopics(true);
-        config.setLargeDataSetNumTopics(500);
-        config.setMaxLevelLength(5);
-        config.setMaxLevels(6);
+        config.setHardCodedTopics(false);
+        config.setLargeDataSetNumTopics(10_000);
+        config.setMaxLevelLength(5); // number of chars on each level
+        config.setMaxLevels(6);  // max number of levels
         config.setMinLevels(3);
-        config.setVocabularySize(7);
+        config.setVocabularySize(7); // Number of different alphabet chars used to generate topics.
     }
 
     @Test
-    public void testMatchingTopics() {
+    public void testFindSubscriptionsForPublisher() {
         log.info("Generating topics...{} ", topicGenerator);
-        List<Topic> topics = topicGenerator.getTopics(PubOrSub.sub);
+        List<String> topics = topicGenerator.getTopics(PubOrSub.sub);
 
         long start = 0L;
         long end = 0L;
@@ -73,7 +73,7 @@ public class PerformanceTests {
 
             List<CriteriaSubscription> subscriptions = topics.stream()
                     .map(topic -> CriteriaSubscription.builder()
-                            .matchCriteria(topic.getTopicString())
+                            .matchCriteria(topic)
                             .build())
                     .collect(Collectors.toCollection(LinkedList::new));
 
@@ -84,6 +84,10 @@ public class PerformanceTests {
             log.info("Duration: {}", end - start);
         }
 
+        // TopicsRepo doesn't yet support matching a pub against a list of subs.
+        boolean lastVal = testTopicsRepo;
+        testTopicsRepo = false;
+
         log.info("Searching...");
         doSearch(PubOrSub.pub, "AA/BB/CC");
         doSearch(PubOrSub.pub, "A/B/C");
@@ -91,21 +95,24 @@ public class PerformanceTests {
         doSearch(PubOrSub.pub, "BB/B/CAAAD/DD/EEF/GG");
         doSearch(PubOrSub.pub, "BB/B/CAAAD");
         log.info("Done.");
+
+        testTopicsRepo = lastVal;
     }
 
-    //@Test
-    public void testMatchingSubscriptions() {
+    @Test
+    public void testFindPublishersForSubscription() {
         log.info("Generating topics...{} ", topicGenerator);
-        List<Topic> topics = topicGenerator.getTopics(PubOrSub.pub);
+        List<String> topics = topicGenerator.getTopics(PubOrSub.pub);
 
         long start = 0L;
         long end = 0L;
 
-        if (testRepo) {
+        if (testTopicsRepo) {
             start = new Date().getTime();
             log.info("Setting up topicsRepo...");
-            for (Topic topic : topics) {
-                topicsRepo.registerTopic(topic.getTopicString());
+
+            for (String topic : topics) {
+                topicsRepo.registerTopic(topic);
             }
             end = new Date().getTime();
             log.info("Duration: {}", end - start);
@@ -119,22 +126,9 @@ public class PerformanceTests {
             log.info("Duration: {}", end - start);
         }
 
-        if (testSubscriptionMatcher) {
-            log.info("Setting up subscription matcher...");
-            start = new Date().getTime();
-
-            List<CriteriaSubscription> subscriptions = topics.stream()
-                    .map(topic -> CriteriaSubscription.builder()
-                            .matchCriteria(topic.getTopicString())
-                            .build())
-                    .collect(Collectors.toCollection(LinkedList::new));
-
-            SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
-            subscriptionMatcher.setSubscriptions(subscriptions);
-            subscriptionMatcher.parseCriterias();
-            end = new Date().getTime();
-            log.info("Duration: {}", end - start);
-        }
+        // SubscriptionMatcher doesn't support matching a sub against a list of pubs.
+        boolean lastVal = testSubscriptionMatcher;
+        testSubscriptionMatcher = false;
 
         log.info("Matching topics...");
         doSearch(PubOrSub.sub, "A/B/>");
@@ -144,10 +138,11 @@ public class PerformanceTests {
         doSearch(PubOrSub.sub, "BB/B/CAAAD/DD/EEF/GG");
         doSearch(PubOrSub.sub, ">");
         log.info("Done.");
+        testSubscriptionMatcher = lastVal;
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {
-        if (testRepo) doSearch(pubOrSub, searchTopic, Implementation.topicsRepo);
+        if (testTopicsRepo) doSearch(pubOrSub, searchTopic, Implementation.topicsRepo);
         if (testAnalyzer) doSearch(pubOrSub, searchTopic, Implementation.topicAnalyzer);
         if (testSubscriptionMatcher) doSearch(pubOrSub, searchTopic, Implementation.subscriptionMatcher);
         log.info("");

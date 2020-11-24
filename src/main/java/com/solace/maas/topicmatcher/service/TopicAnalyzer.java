@@ -2,12 +2,12 @@ package com.solace.maas.topicmatcher.service;
 
 import com.solace.maas.topicmatcher.PubOrSub;
 import com.solace.maas.topicmatcher.model.Prefix;
-import com.solace.maas.topicmatcher.model.Topic;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class TopicAnalyzer {
@@ -22,17 +22,22 @@ public class TopicAnalyzer {
     // prefixValue etc.
     private List<String> allTopicStrings = new ArrayList<>();
     private Map<String, String> topicIdToTopicString = new HashMap<>();
+    private AtomicLong idGenerator = new AtomicLong();
 
-    public void analyze(PubOrSub pubOrSub, List<Topic> topics) {
+    public void analyze(PubOrSub pubOrSub, List<String> topicStrings) {
         allTopicStrings.clear();
         maps.clear();
         prefixMap.clear();
         topicIdToTopicString.clear();
         int maxLevel = 0;
+        List<Topic> topics = new ArrayList<>();
 
-        for (Topic topic : topics) {
-            allTopicStrings.add(topic.getTopicString());
-            topicIdToTopicString.put(topic.getId(), topic.getTopicString());
+        for (String topicString : topicStrings) {
+            String id = "T" + idGenerator.incrementAndGet();
+            Topic topic = new Topic(id, topicString);
+            allTopicStrings.add(topicString);
+            topicIdToTopicString.put(id, topicString);
+            topics.add(topic);
             int numLevels = topic.getNumLevels();
             if (numLevels > maxLevel) {
                 maxLevel = numLevels;
@@ -43,7 +48,8 @@ public class TopicAnalyzer {
         float hashLoadFactor = 0.99f;
         double fudgeFactor = 1.2;
         int hashCapacity = (int) ((estimatedValuesPerLevel * fudgeFactor) / hashLoadFactor);
-        log.info("max level: {} estimatedValuesPerLevel: {} hashCapacity: {}", maxLevel, estimatedValuesPerLevel, hashCapacity);
+        log.debug("max level: {} estimatedValuesPerLevel: {} hashCapacity: {}", maxLevel, estimatedValuesPerLevel,
+                hashCapacity);
 
         for (Topic topic : topics) {
             int numLevels = topic.getNumLevels();
@@ -186,14 +192,6 @@ public class TopicAnalyzer {
                     matching = matchingAtThisLevel;
                 } else {
                     matching.retainAll(matchingAtThisLevel);
-//                    HashSet<Pair<String, Integer>> matchingClone = new HashSet<>(Math.max(matching.size(),
-//                            matchingAtThisLevel.size()));
-//                    for (Pair<String, Integer> t : matching) {
-//                        if (matchingAtThisLevel.contains(t)) {
-//                            matchingClone.add(t);
-//                        }
-//                    }
-//                    matching = matchingClone;
                 }
                 log.debug("Resulting set: {}", matching.size());
                 if (matching.size() == 0) {
@@ -331,6 +329,67 @@ public class TopicAnalyzer {
             for (String key : map.keySet()) {
                 log.info("\t\t{} : {}", key, map.get(key));
             }
+        }
+    }
+
+    public static class Topic {
+        private String id;
+        private int numLevels;
+        private String topicString;
+        private List<String> topicLevels = new ArrayList();
+
+        public Topic(String id, int numLevels, String topicString, List<String> topicLevels) {
+            this.id = id;
+            this.numLevels = numLevels;
+            this.topicString = topicString;
+            this.topicLevels = topicLevels;
+        }
+
+        public Topic(String id, String topicString) {
+            this.id = id;
+            this.topicString = topicString;
+
+            String[] levs = topicString.split("/");
+            this.numLevels = levs.length;
+            this.topicLevels = Arrays.asList(levs);
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getLevel(int level) {
+            return topicLevels.get(level);
+        }
+
+        public int getNumLevels() { return numLevels; }
+
+        public String getTopicString() {
+            return topicString;
+        }
+
+        @Override
+        public String toString() {
+            return "Topic{" +
+                    "id='" + id + '\'' +
+                    ", levels='" + numLevels + '\'' +
+                    ", topicString='" + topicString + '\'' +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Topic topic = (Topic) o;
+            return numLevels == topic.numLevels &&
+                    topicString.equals(topic.topicString) &&
+                    topicLevels.equals(topic.topicLevels);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(numLevels, topicString, topicLevels);
         }
     }
 }
