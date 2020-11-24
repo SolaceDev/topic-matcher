@@ -3,6 +3,7 @@ package com.solace.maas.topicmatcher;
 import com.solace.maas.topicmatcher.carlstitching.CriteriaSubscription;
 import com.solace.maas.topicmatcher.carlstitching.CriteriaTopic;
 import com.solace.maas.topicmatcher.carlstitching.SubscriptionMatcher;
+import com.solace.maas.topicmatcher.carlstitching.TopicMatcher;
 import com.solace.maas.topicmatcher.igor.IgorTopicsRepoTreeImpl;
 import com.solace.maas.topicmatcher.igor.TopicsRepo;
 import com.solace.maas.topicmatcher.service.AbstractTopicGenerator;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,10 +36,12 @@ public class PerformanceTests {
     TopicAnalyzer topicAnalyzer = new TopicAnalyzer();
     TopicsRepo topicsRepo = new IgorTopicsRepoTreeImpl();
     SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
+    TopicMatcher topicMatcher = new TopicMatcher();
 
     boolean testAnalyzer = true;
     boolean testTopicsRepo = true;
     boolean testSubscriptionMatcher = true;
+    boolean testTopicMatcher = true;
 
 
     @BeforeEach
@@ -46,7 +50,7 @@ public class PerformanceTests {
         config.setHardCodedTopics(false);
         config.setLargeDataSetNumTopics(100_000);
         config.setMaxLevelLength(5); // number of chars on each level
-        config.setMaxLevels(6);  // max number of levels
+        config.setMaxLevels(8);  // max number of levels
         config.setMinLevels(3);
         config.setVocabularySize(7); // Number of different alphabet chars used to generate topics.
     }
@@ -85,8 +89,10 @@ public class PerformanceTests {
         }
 
         // TopicsRepo doesn't yet support matching a pub against a list of subs.
-        boolean lastVal = testTopicsRepo;
+        boolean lastTopicsRepoVal = testTopicsRepo;
+        boolean lastTopicMatcherVal = testTopicMatcher;
         testTopicsRepo = false;
+        testTopicMatcher = false;
 
         log.info("Searching...");
         doSearch(PubOrSub.pub, "AA/BB/CC");
@@ -96,7 +102,8 @@ public class PerformanceTests {
         doSearch(PubOrSub.pub, "BB/B/CAAAD");
         log.info("Done.");
 
-        testTopicsRepo = lastVal;
+        testTopicsRepo = lastTopicsRepoVal;
+        testTopicMatcher = lastTopicMatcherVal;
     }
 
     @Test
@@ -126,10 +133,17 @@ public class PerformanceTests {
             log.info("Duration: {}", end - start);
         }
 
-        // SubscriptionMatcher doesn't support matching a sub against a list of pubs.
+        if (testTopicMatcher) {
+            log.info("Setting up topicMatcher...");
+            start = new Date().getTime();
+            topicMatcher.setTopics(topics);
+            topicMatcher.parseTopics();
+            end = new Date().getTime();
+            log.info("Duration: {}", end - start);
+        }
+
         boolean lastVal = testSubscriptionMatcher;
         testSubscriptionMatcher = false;
-
         log.info("Matching topics...");
         doSearch(PubOrSub.sub, "A/B/>");
         doSearch(PubOrSub.sub, "A*/BB/CC");
@@ -142,21 +156,24 @@ public class PerformanceTests {
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {
-        if (testTopicsRepo) {
-            doSearch(pubOrSub, searchTopic, Implementation.topicsRepo);
-        }
         if (testAnalyzer) {
             doSearch(pubOrSub, searchTopic, Implementation.topicAnalyzer);
         }
         if (testSubscriptionMatcher) {
             doSearch(pubOrSub, searchTopic, Implementation.subscriptionMatcher);
         }
+        if (testTopicMatcher) {
+            doSearch(pubOrSub, searchTopic, Implementation.topicMatcher);
+        }
+        if (testTopicsRepo) {
+            doSearch(pubOrSub, searchTopic, Implementation.topicsRepo);
+        }
         log.info("");
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic, Implementation implementation) {
 
-        List<String> matchingTopics = null;
+        Collection<String> matchingTopics = null;
 
         long start = new Date().getTime();
         switch (implementation) {
@@ -165,6 +182,9 @@ public class PerformanceTests {
                 break;
             case topicAnalyzer:
                 matchingTopics = topicAnalyzer.match(pubOrSub, searchTopic);
+                break;
+            case topicMatcher:
+                matchingTopics = topicMatcher.getTopicsForSubscription(searchTopic);
                 break;
             case subscriptionMatcher:
                 CriteriaTopic criteriaTopic = subscriptionMatcher.getSubscriptionsForTopic(searchTopic);
@@ -179,7 +199,7 @@ public class PerformanceTests {
         long end = new Date().getTime();
         long millis = end - start;
 
-        if (matchingTopics.size() > 20) {
+        if (matchingTopics.size() > 10) {
             log.info(String.format("Search: impl: %19s time: %4d %16s matches: %s", implementation, millis,
                     searchTopic,
                     matchingTopics.size()));
@@ -190,5 +210,5 @@ public class PerformanceTests {
         }
     }
 
-    private static enum Implementation {subscriptionMatcher, topicAnalyzer, topicsRepo}
+    private static enum Implementation {subscriptionMatcher, topicAnalyzer, topicMatcher, topicsRepo}
 }
