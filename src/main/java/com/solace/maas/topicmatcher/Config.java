@@ -10,12 +10,13 @@ public class Config {
     private double appToTopicRatio = 0.3; // chance that an app will be assigned a particular topic
     private boolean beer = false; // If true, we use the Beer topic generator.
     private double chanceOfGT = 0.2;  // Chance that a leaf node on a subscription will be >
-    private double chanceOfPrefix = 0.4; // Chance that a level on a subscription will have a prefixed *
-    private double chanceOfStar = 0.4; // Chance that a level on a subscription will be a *
+    private double chanceOfPrefix = 0.3; // Chance that a level on a subscription will have a prefixed *
+    private double chanceOfStar = 0.3; // Chance that a level on a subscription will be a *
     private boolean hardCodedTopics; // If true, the topic generator returns a hard-coded set of topics.
     private int maxLevelLength = 3; // maximum number of chars in a level.
     private int minLevels = 3;
     private int maxLevels = 6;
+    private int maxNumTopicsLogged = 20; // The maximum number of topics that will be dumped into the logger.
     private int numApplications = 20;
     private int numTopics = 40;
     private boolean largeDataSet = false; // If true, we generate a large data set and no applications.
@@ -121,5 +122,13 @@ public class Config {
 
     public void setHardCodedTopics(boolean hardCodedTopics) {
         this.hardCodedTopics = hardCodedTopics;
+    }
+
+    public int getMaxNumTopicsLogged() {
+        return maxNumTopicsLogged;
+    }
+
+    public void setMaxNumTopicsLogged(int maxNumTopicsLogged) {
+        this.maxNumTopicsLogged = maxNumTopicsLogged;
     }
 }

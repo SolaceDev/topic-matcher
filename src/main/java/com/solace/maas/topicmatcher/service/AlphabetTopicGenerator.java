@@ -145,11 +145,12 @@ public class AlphabetTopicGenerator extends AbstractTopicGenerator {
 
     public List<String> getKnownPublisherTopics() {
         List<String> topics = new ArrayList<>();
-        topics.add("AAA/BBB/CCC");
-        topics.add("A/B/C");
-        topics.add("AAA/F/C");
-        topics.add("A/BB/CC");
-        topics.add("AA/B/CCC");
+        topics.add("DD/BC/CBBAC/BEE/D");
+//        topics.add("AAA/BBB/CCC");
+//        topics.add("A/B/C");
+//        topics.add("AAA/F/C");
+//        topics.add("A/BB/CC");
+//        topics.add("AA/B/CCC");
         return topics;
     }
 }

@@ -8,6 +8,7 @@ import com.solace.maas.topicmatcher.igor.IgorTopicsRepoTreeImpl;
 import com.solace.maas.topicmatcher.igor.TopicsRepo;
 import com.solace.maas.topicmatcher.service.AbstractTopicGenerator;
 import com.solace.maas.topicmatcher.service.TopicAnalyzer;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -16,10 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @SpringBootTest
@@ -37,11 +35,13 @@ public class PerformanceTests {
     TopicsRepo topicsRepo = new IgorTopicsRepoTreeImpl();
     SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
     TopicMatcher topicMatcher = new TopicMatcher();
+    List<Pair<Implementation, Collection<String>>> results = new ArrayList<>();
 
     boolean testAnalyzer = true;
     boolean testTopicsRepo = true;
     boolean testSubscriptionMatcher = true;
     boolean testTopicMatcher = true;
+    boolean waitForProfiler = false; // It true, we'll wait 10 seconds so that we can hook up VisualVM.
 
 
     @BeforeEach
@@ -52,7 +52,16 @@ public class PerformanceTests {
         config.setMaxLevelLength(5); // number of chars on each level
         config.setMaxLevels(8);  // max number of levels
         config.setMinLevels(3);
+        config.setMaxNumTopicsLogged(20);
         config.setVocabularySize(7); // Number of different alphabet chars used to generate topics.
+
+        if (waitForProfiler) {
+            try {
+                Thread.sleep(20000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Test
@@ -117,10 +126,7 @@ public class PerformanceTests {
         if (testTopicsRepo) {
             start = new Date().getTime();
             log.info("Setting up topicsRepo...");
-
-            for (String topic : topics) {
-                topicsRepo.registerTopic(topic);
-            }
+            topics.forEach(topicsRepo::registerTopic);
             end = new Date().getTime();
             log.info("Duration: {}", end - start);
         }
@@ -144,7 +150,10 @@ public class PerformanceTests {
 
         boolean lastVal = testSubscriptionMatcher;
         testSubscriptionMatcher = false;
+
         log.info("Matching topics...");
+        doSearch(PubOrSub.sub, "*/B*/C*/*/>");
+        doSearch(PubOrSub.sub, "*/*/*/*/>");
         doSearch(PubOrSub.sub, "A/B/>");
         doSearch(PubOrSub.sub, "A*/BB/CC");
         doSearch(PubOrSub.sub, "AA/BBFFF/CCD");
@@ -156,22 +165,58 @@ public class PerformanceTests {
     }
 
     private void doSearch(PubOrSub pubOrSub, String searchTopic) {
+
+        // TODO: Make these test* flags properties of Implementations so we can just loop through.
         if (testAnalyzer) {
-            doSearch(pubOrSub, searchTopic, Implementation.topicAnalyzer);
+            results.add(Pair.of(Implementation.topicAnalyzer, doSearch(pubOrSub, searchTopic,
+                    Implementation.topicAnalyzer)));
         }
         if (testSubscriptionMatcher) {
-            doSearch(pubOrSub, searchTopic, Implementation.subscriptionMatcher);
+            results.add(Pair.of(Implementation.subscriptionMatcher, doSearch(pubOrSub, searchTopic,
+                    Implementation.subscriptionMatcher)));
         }
         if (testTopicMatcher) {
-            doSearch(pubOrSub, searchTopic, Implementation.topicMatcher);
+            results.add(Pair.of(Implementation.topicMatcher, doSearch(pubOrSub, searchTopic,
+                    Implementation.topicMatcher)));
         }
         if (testTopicsRepo) {
-            doSearch(pubOrSub, searchTopic, Implementation.topicsRepo);
+            results.add(Pair.of(Implementation.topicsRepo, doSearch(pubOrSub, searchTopic, Implementation.topicsRepo)));
         }
+
+        // log.debug("Results: {}", results);
+
+        for (int i = 0; i < results.size(); i++) {
+            Pair<Implementation, Collection<String>> r1 = results.get(i);
+                //log.info("\ti: {} {} {}", i, r1.getLeft(), r1.getRight().size());
+                for (int j = i + 1; j < results.size(); j++) {
+                    Pair<Implementation, Collection<String>> r2 = results.get(j);
+                    //log.info("\t\tj: {} {} {}", j, r2.getLeft(), r2.getRight().size());
+                    if (r1.getRight().size() != r2.getRight().size()) {
+                        Set<String> s1 = r1.getRight().stream().collect(Collectors.toSet());
+                        Set<String> s2 = r2.getRight().stream().collect(Collectors.toSet());
+                        Set<String> s1Not2 = new HashSet<>(s1);
+                        s1Not2.removeIf(s -> s2.contains(s));
+                        Set<String> s2Not1 = new HashSet<>(s2);
+                        s2Not1.removeIf(s -> s1.contains(s));
+
+                        if (s1Not2.size() > 0) {
+                            log.info("In {} but not in {}: {}", r1.getLeft(), r2.getLeft(),
+                                    s1Not2.size() > config.getMaxNumTopicsLogged() ?
+                                    s1Not2.size() : s1Not2);
+                        }
+
+                        if (s2Not1.size() > 0) {
+                            log.info("In {} but not in {}: {}", r2.getLeft(), r1.getLeft(), s2Not1.size() > config.getMaxNumTopicsLogged() ?
+                                     s2Not1.size() : s2Not1);
+                        }
+                    }
+                }
+        }
+        results.clear();
         log.info("");
     }
 
-    private void doSearch(PubOrSub pubOrSub, String searchTopic, Implementation implementation) {
+    private Collection<String> doSearch(PubOrSub pubOrSub, String searchTopic, Implementation implementation) {
 
         Collection<String> matchingTopics = null;
 
@@ -199,7 +244,7 @@ public class PerformanceTests {
         long end = new Date().getTime();
         long millis = end - start;
 
-        if (matchingTopics.size() > 10) {
+        if (matchingTopics.size() >= config.getMaxNumTopicsLogged()) {
             log.info(String.format("Search: impl: %19s time: %4d %16s matches: %s", implementation, millis,
                     searchTopic,
                     matchingTopics.size()));
@@ -208,6 +253,8 @@ public class PerformanceTests {
                     searchTopic,
                     matchingTopics));
         }
+
+        return matchingTopics;
     }
 
     private static enum Implementation {subscriptionMatcher, topicAnalyzer, topicMatcher, topicsRepo}

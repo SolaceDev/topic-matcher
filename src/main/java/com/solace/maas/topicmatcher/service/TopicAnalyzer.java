@@ -12,13 +12,9 @@ import java.util.stream.Collectors;
 public class TopicAnalyzer {
 
     private final Logger log = LoggerFactory.getLogger(TopicAnalyzer.class);
-    private Map<Integer, Map<String, Set<Pair<Long, Integer>>>> maps = new HashMap(); // level -> value ->
-    // topicId,length
-    private Map<Integer, Prefix> prefixMap = new HashMap(); // Level,
-    // length, list
-    // of topics.
-    // level ->
-    // prefixValue etc.
+    // level, literalValue, <topicId,topicLength>
+    private Map<Integer, Map<String, Set<Pair<Long, Integer>>>> maps = new HashMap();
+    private Map<Integer, Prefix> prefixMap = new HashMap();
     private List<String> allTopicStrings = new ArrayList<>();
     private Map<Long, String> topicIdToTopicString = new HashMap<>();
     private AtomicLong idGenerator = new AtomicLong();
@@ -130,6 +126,11 @@ public class TopicAnalyzer {
             log.debug("Level to match: {} {} leaf: {}", level, levelToMatch, isLeafNode);
             final int lev = level; // for use in lamdas
 
+            // remove matching nodes that are shorter than this topic.
+            if (level > 0) {
+                matching.removeIf(p -> p.getRight() <= lev);
+            }
+
             // Special case: match all
             if (levelToMatch.equals(">")) {
                 if (level == 0) {
@@ -139,16 +140,22 @@ public class TopicAnalyzer {
                 }
             }
 
+            Map<String, Set<Pair<Long, Integer>>> topicsAtThisLevel = maps.get(level);
+
             if (levelToMatch.equals("*")) {
                 // If it's a leaf node, return the current set where it ends at this level.
                 if (isLeafNode) {
-                    matching.removeIf(p -> p.getRight() > lev + 1);
                     break;
+                } else {
+                    if (level == 0 && topicsAtThisLevel != null) {
+                        for (Set<Pair<Long, Integer>> topics : topicsAtThisLevel.values()) {
+                            matching.addAll(topics);
+                        }
+                    }
                 }
                 // else nothing changes in our set of matches.
             } else {
 
-                Map<String, Set<Pair<Long, Integer>>> topicsAtThisLevel = maps.get(level);
                 if (topicsAtThisLevel == null) {
                     return List.of(); // No topics at this level.
                 }
@@ -386,6 +393,7 @@ public class TopicAnalyzer {
      */
     public static class Prefix {
         private int maxPrefixLength;
+        // length, value, <topicId,topicLength>
         private Map<Integer, Map<String, Set<Pair<Long, Integer>>>> topics = new HashMap<>();
 
         public int getMaxPrefixLength() {
