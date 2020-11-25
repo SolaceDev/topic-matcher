@@ -65,8 +65,8 @@ public class TopicMatcher {
 
         topicsRoot.values().forEach(topicNode -> {
             if (matcher.isMatch(topicNode)) {
-                if ((matchPieces.size() == 0 || MatchCriteria.CriteriaType.INHERIT.equals(matcher.getCriteriaType()))
-                        && topicNode.getTopics().size() > 0) {
+                if (MatchCriteria.CriteriaType.INHERIT.equals(matcher.getCriteriaType())
+                        || (matchPieces.size() == 0 && topicNode.getTopics().size() > 0 && topicNode.getChildren().size() == 0)) {
                     topics.addAll(topicNode.getTopics());
                 }
 
@@ -90,8 +90,8 @@ public class TopicMatcher {
 
         parentTopicNode.getChildren().values().forEach(topicNode -> {
             if (matcher.isMatch(topicNode)) {
-                if ((pieces.size() == 0 || MatchCriteria.CriteriaType.INHERIT.equals(matcher.getCriteriaType()))
-                        && topicNode.getTopics().size() > 0) {
+                if (MatchCriteria.CriteriaType.INHERIT.equals(matcher.getCriteriaType())
+                        || (pieces.size() == 0 && topicNode.getTopics().size() > 0 && topicNode.getChildren().size() == 0)) {
                     topics.addAll(topicNode.getTopics());
                 }
 
