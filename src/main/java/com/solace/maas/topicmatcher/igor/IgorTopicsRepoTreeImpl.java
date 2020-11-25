@@ -7,9 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
-import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class IgorTopicsRepoTreeImpl implements TopicsRepo {
 
@@ -97,26 +96,21 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
             }
             if (levels[index].equals("*")) {
                 if (isLeafLevel) {
-                    parent.getChildren().stream()
-                            .filter(TreeLevel::isLeaf)
-                            .forEach(leaf -> matches.add(leaf.getFullPath()));
+                    parent.getLeafChildren().forEach(leaf -> matches.add(leaf.getFullPath()));
                 } else {
                     // is not leaf
-                    Set<TreeLevel> nonLeafSiblings = parent.getChildren().stream()
-                            .filter(lvl -> !lvl.isLeaf())
-                            .collect(Collectors.toSet());
-                    parentQ.addAll(nonLeafSiblings);
+                    parentQ.addAll(parent.getNonLeafChildren());
                 }
             } else if (levels[index].endsWith("*")) {
                 if (isLeafLevel) {
-                    Set<TreeLevel> leafMatchedLevels = getLevelsFilteredByPrefix(levels[index], parent.getChildren(), TreeLevel::isLeaf);
-                    for (TreeLevel leafLevel : leafMatchedLevels) {
-                        matches.add(leafLevel.getFullPath());
-                    }
+                    getLevelsFilteredByPrefix(levels[index], parent.getLeafChildren())
+                            .forEach(leaf ->
+                                    matches.add(leaf.getFullPath()));
                 } else {
                     // is not leaf
-                    Set<TreeLevel> nonLeafMatchedLevels = getLevelsFilteredByPrefix(levels[index], parent.getChildren(), lvl -> !lvl.isLeaf());
-                    parentQ.addAll(nonLeafMatchedLevels);
+                    parentQ.addAll(
+                            getLevelsFilteredByPrefix(levels[index], parent.getNonLeafChildren())
+                                    .collect(Collectors.toSet()));
                 }
             } else if (levels[index].equals(">")) {
                 Queue<TreeLevel> q = new LinkedList<>(parent.getChildren());
@@ -144,14 +138,10 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
         }
     }
 
-    private Set<TreeLevel> getLevelsFilteredByPrefix(String level,
-                                                     Collection<TreeLevel> siblings,
-                                                     Predicate<TreeLevel> predicate) {
+    private Stream<TreeLevel> getLevelsFilteredByPrefix(String level,
+                                                        Collection<TreeLevel> siblings) {
         String prefix = level.substring(0, level.length() - 1);
-        return siblings.stream()
-                .filter(predicate)
-                .filter(lvl -> lvl.getName().startsWith(prefix))
-                .collect(Collectors.toSet());
+        return siblings.stream().filter(lvl -> lvl.getName().startsWith(prefix));
     }
 
     @Override
@@ -174,6 +164,10 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
         private String fullPath;
         // by hash lookup
         private final Map<Integer, TreeLevel> children = new HashMap<>();
+
+        // since the children collection might be vast, it is wise to have them partitioned by leaf/non-leaf types
+        private final List<TreeLevel> leafChildren = new LinkedList<>();
+        private final List<TreeLevel> nonLeafChildren = new LinkedList<>();
 
         TreeLevel(String name, TreeLevel parent, boolean leaf) {
             this.name = name;
@@ -216,6 +210,11 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
 
         public void addChild(TreeLevel child) {
             children.put(child.hashCode(), child);
+            if (child.isLeaf()) {
+                leafChildren.add(child);
+            } else {
+                nonLeafChildren.add(child);
+            }
         }
 
         public TreeLevel getChild(TreeLevel child) {
@@ -224,6 +223,14 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
 
         public void removeChild(TreeLevel child) {
             children.remove(child.hashCode());
+        }
+
+        public List<TreeLevel> getLeafChildren() {
+            return leafChildren;
+        }
+
+        public List<TreeLevel> getNonLeafChildren() {
+            return nonLeafChildren;
         }
 
         public Collection<TreeLevel> getChildren() {
