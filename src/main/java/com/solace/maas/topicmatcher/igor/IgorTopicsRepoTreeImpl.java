@@ -1,6 +1,5 @@
 package com.solace.maas.topicmatcher.igor;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -9,15 +8,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class IgorTopicsRepoTreeImpl implements TopicsRepo {
 
-    private static final AtomicLong ID_GEN = new AtomicLong(-1);
+    private static long counter = -1;
 
-    private static final TreeLevel ROOT = new TreeLevel(ID_GEN.incrementAndGet(), "<root>", null, false);
+    private static final TreeLevel ROOT = new TreeLevel(++counter, "<root>", null, false);
 
     @Override
     public void registerTopic(String topic) {
@@ -30,12 +28,11 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                 isLeaf = true;
             }
             TreeLevel toMatch = new TreeLevel(levels[i], parent, isLeaf);
-            if (!parent.getChildren().contains(toMatch)) {
-                toMatch.setId(ID_GEN.incrementAndGet());
+            current = parent.getChild(toMatch);
+            if (current == null) {
+                toMatch.setId(++counter);
                 parent.addChild(toMatch);
                 current = toMatch;
-            } else {
-                current = parent.getChild(toMatch);
             }
             parent = current;
         }
@@ -53,7 +50,8 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                 isLeaf = true;
             }
             TreeLevel toMatch = new TreeLevel(levels[i], parent, isLeaf);
-            if (parent.getChildren().contains(toMatch)) {
+            current = parent.getChild(toMatch);
+            if (current != null) {
                 current = parent.getChild(toMatch);
                 // add to top of the  stack
                 stack.push(current);
@@ -80,11 +78,11 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
     @Override
     public List<String> findMatchingTopics(String subscription) {
         String[] levels = subscription.split("/");
-        List<String> matches = new ArrayList<>();
+        List<String> matches = new LinkedList<>();
         findMatchingTopics(levels, matches);
         return matches;
     }
-    
+
     public void findMatchingTopics(String[] levels,
                                    List<String> matches) {
         Queue<TreeLevel> parentQ = new LinkedList<>();
@@ -99,12 +97,9 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
             }
             if (levels[index].equals("*")) {
                 if (isLeafLevel) {
-                    Set<TreeLevel> leafSiblings = parent.getChildren().stream()
+                    parent.getChildren().stream()
                             .filter(TreeLevel::isLeaf)
-                            .collect(Collectors.toSet());
-                    for (TreeLevel leafLevel : leafSiblings) {
-                        matches.add(leafLevel.getFullPath());
-                    }
+                            .forEach(leaf -> matches.add(leaf.getFullPath()));
                 } else {
                     // is not leaf
                     Set<TreeLevel> nonLeafSiblings = parent.getChildren().stream()
@@ -137,8 +132,8 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
             } else {
                 // matching against regular level, no wildcards detected
                 TreeLevel toMatch = new TreeLevel(levels[index], parent, isLeafLevel);
-                if (parent.getChildren().contains(toMatch)) {
-                    TreeLevel current = parent.getChild(toMatch);
+                TreeLevel current = parent.getChild(toMatch);
+                if (current != null) {
                     if (isLeafLevel) {
                         matches.add(current.getFullPath());
                     } else {
@@ -152,7 +147,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
     private Set<TreeLevel> getLevelsFilteredByPrefix(String level,
                                                      Collection<TreeLevel> siblings,
                                                      Predicate<TreeLevel> predicate) {
-        String prefix = level.substring(0, level.lastIndexOf("*"));
+        String prefix = level.substring(0, level.length() - 1);
         return siblings.stream()
                 .filter(predicate)
                 .filter(lvl -> lvl.getName().startsWith(prefix))
@@ -176,6 +171,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
         private final TreeLevel parent;
         private final boolean leaf;
         private int depth = -1;
+        private String fullPath;
         // by hash lookup
         private final Map<Integer, TreeLevel> children = new HashMap<>();
 
@@ -183,6 +179,9 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
             this.name = name;
             this.parent = parent;
             this.leaf = leaf;
+            if (leaf) {
+                setFullPath();
+            }
         }
 
         TreeLevel(long id, String name, TreeLevel parent, boolean leaf) {
@@ -262,7 +261,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                     '}';
         }
 
-        private String getFullPath() {
+        private void setFullPath() {
             TreeLevel current = this;
             LinkedList<String> stack = new LinkedList<>();
             do {
@@ -276,7 +275,11 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                     sb.append("/");
                 }
             }
-            return sb.toString();
+            fullPath = sb.toString();
+        }
+
+        private String getFullPath() {
+            return fullPath;
         }
 
         // lazy calculation
