@@ -98,16 +98,19 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
             }
             if (levels[index].equals("*")) {
                 if (isLeafLevel) {
-                    parent.getLeafChildren().forEach(leaf -> matches.add(leaf.getFullPath()));
+                    matches.addAll(parent.getLeafChildren()
+                            .stream()
+                            .map(TreeLevel::getFullPath)
+                            .collect(Collectors.toList()));
                 } else {
                     // is not leaf
                     parentQ.addAll(parent.getNonLeafChildren());
                 }
             } else if (levels[index].endsWith("*")) {
                 if (isLeafLevel) {
-                    getLevelsFilteredByPrefix(levels[index], parent.getLeafChildren())
-                            .forEach(leaf ->
-                                    matches.add(leaf.getFullPath()));
+                    matches.addAll(getLevelsFilteredByPrefix(levels[index], parent.getLeafChildren())
+                            .map(TreeLevel::getFullPath)
+                            .collect(Collectors.toList()));
                 } else {
                     // is not leaf
                     parentQ.addAll(
@@ -115,13 +118,17 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                                     .collect(Collectors.toSet()));
                 }
             } else if (levels[index].equals(">")) {
-                matches.addAll(parent.getLeafChildren().stream().map(TreeLevel::getFullPath).collect(Collectors.toList()));
+                matches.addAll(parent.getLeafChildren().stream()
+                        .map(TreeLevel::getFullPath)
+                        .collect(Collectors.toList()));
                 Queue<TreeLevel> q = new LinkedList<>(parent.getNonLeafChildren());
                 while (!q.isEmpty()) {
                     TreeLevel current = q.remove();
                     // adding children of a current level
                     q.addAll(current.getNonLeafChildren());
-                    matches.addAll(current.getLeafChildren().stream().map(TreeLevel::getFullPath).collect(Collectors.toList()));
+                    matches.addAll(current.getLeafChildren().stream()
+                            .map(TreeLevel::getFullPath)
+                            .collect(Collectors.toList()));
                 }
             } else {
                 // matching against regular level, no wildcards detected
