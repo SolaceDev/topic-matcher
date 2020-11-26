@@ -2,11 +2,13 @@ package com.solace.maas.topicmatcher.igor;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -113,15 +115,13 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                                     .collect(Collectors.toSet()));
                 }
             } else if (levels[index].equals(">")) {
-                Queue<TreeLevel> q = new LinkedList<>(parent.getChildren());
+                matches.addAll(parent.getLeafChildren().stream().map(TreeLevel::getFullPath).collect(Collectors.toList()));
+                Queue<TreeLevel> q = new LinkedList<>(parent.getNonLeafChildren());
                 while (!q.isEmpty()) {
                     TreeLevel current = q.remove();
-                    if (current.isLeaf()) {
-                        matches.add(current.getFullPath());
-                    } else {
-                        // adding children of a current level
-                        q.addAll(current.getChildren());
-                    }
+                    // adding children of a current level
+                    q.addAll(current.getNonLeafChildren());
+                    matches.addAll(current.getLeafChildren().stream().map(TreeLevel::getFullPath).collect(Collectors.toList()));
                 }
             } else {
                 // matching against regular level, no wildcards detected
@@ -166,8 +166,8 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
         private final Map<Integer, TreeLevel> children = new HashMap<>();
 
         // since the children collection might be vast, it is wise to have them partitioned by leaf/non-leaf types
-        private final List<TreeLevel> leafChildren = new LinkedList<>();
-        private final List<TreeLevel> nonLeafChildren = new LinkedList<>();
+        private final Set<TreeLevel> leafChildren = new HashSet<>();
+        private final Set<TreeLevel> nonLeafChildren = new HashSet<>();
 
         TreeLevel(String name, TreeLevel parent, boolean leaf) {
             this.name = name;
@@ -223,13 +223,15 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
 
         public void removeChild(TreeLevel child) {
             children.remove(child.hashCode());
+            nonLeafChildren.remove(child);
+            leafChildren.remove(child);
         }
 
-        public List<TreeLevel> getLeafChildren() {
+        public Set<TreeLevel> getLeafChildren() {
             return leafChildren;
         }
 
-        public List<TreeLevel> getNonLeafChildren() {
+        public Set<TreeLevel> getNonLeafChildren() {
             return nonLeafChildren;
         }
 
