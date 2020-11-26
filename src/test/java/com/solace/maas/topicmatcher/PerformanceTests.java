@@ -4,6 +4,8 @@ import com.solace.maas.topicmatcher.carlstitching.CriteriaSubscription;
 import com.solace.maas.topicmatcher.carlstitching.CriteriaTopic;
 import com.solace.maas.topicmatcher.carlstitching.SubscriptionMatcher;
 import com.solace.maas.topicmatcher.carlstitching.TopicMatcher;
+import com.solace.maas.topicmatcher.eh.SubscriptionSet;
+import com.solace.maas.topicmatcher.eh.TopicSet;
 import com.solace.maas.topicmatcher.igor.IgorTopicsRepoTreeImpl;
 import com.solace.maas.topicmatcher.igor.TopicsRepo;
 import com.solace.maas.topicmatcher.service.AbstractTopicGenerator;
@@ -35,12 +37,18 @@ public class PerformanceTests {
     TopicsRepo topicsRepo = new IgorTopicsRepoTreeImpl();
     SubscriptionMatcher subscriptionMatcher = new SubscriptionMatcher();
     TopicMatcher topicMatcher = new TopicMatcher();
+    SubscriptionSet subscriptionSet = null;
+    TopicSet topicSet = null;
+    TopicSet cachedTopicSet = null;
     List<Pair<Implementation, Collection<String>>> results = new ArrayList<>();
 
     boolean testAnalyzer = true;
     boolean testTopicsRepo = true;
     boolean testSubscriptionMatcher = true;
     boolean testTopicMatcher = true;
+    boolean testSubscriptionSet = true;
+    boolean testTopicSet = true;
+    boolean testCachedTopicSet = true;
     boolean waitForProfiler = false; // It true, we'll wait 10 seconds so that we can hook up VisualVM.
 
 
@@ -97,11 +105,21 @@ public class PerformanceTests {
             log.info("Duration: {}", end - start);
         }
 
+        if (testSubscriptionSet) {
+            log.info("Setting up subscription set...");
+            start = new Date().getTime();
+            subscriptionSet = new SubscriptionSet(topics);
+            end = new Date().getTime();
+            log.info("Duration: {}", end - start);
+        }
+
         // TopicsRepo doesn't yet support matching a pub against a list of subs.
         boolean lastTopicsRepoVal = testTopicsRepo;
         boolean lastTopicMatcherVal = testTopicMatcher;
         testTopicsRepo = false;
         testTopicMatcher = false;
+        testTopicSet = false;
+        testCachedTopicSet = false;
 
         log.info("Searching...");
         doSearch(PubOrSub.pub, "AA/BB/CC");
@@ -148,8 +166,25 @@ public class PerformanceTests {
             log.info("Duration: {}", end - start);
         }
 
+        if (testTopicSet) {
+            log.info("Setting up topicSet...");
+            start = new Date().getTime();
+            topicSet = new TopicSet(topics);
+            end = new Date().getTime();
+            log.info("Duration: {}", end - start);
+        }
+
+        if (testTopicSet) {
+            log.info("Setting up cachedTopicSet...");
+            start = new Date().getTime();
+            cachedTopicSet = new TopicSet(topics, true);
+            end = new Date().getTime();
+            log.info("Duration: {}", end - start);
+        }
+
         boolean lastVal = testSubscriptionMatcher;
         testSubscriptionMatcher = false;
+        testSubscriptionSet = false;
 
         log.info("Matching topics...");
         doSearch(PubOrSub.sub, "*/B*/C*/*/>");
@@ -182,6 +217,15 @@ public class PerformanceTests {
         if (testTopicsRepo) {
             results.add(Pair.of(Implementation.topicsRepo, doSearch(pubOrSub, searchTopic, Implementation.topicsRepo)));
         }
+        if (testSubscriptionSet) {
+            results.add(Pair.of(Implementation.subscriptionSet, doSearch(pubOrSub, searchTopic, Implementation.subscriptionSet)));
+        }
+        if (testTopicSet) {
+            results.add(Pair.of(Implementation.topicSet, doSearch(pubOrSub, searchTopic, Implementation.topicSet)));
+        }
+        if (testCachedTopicSet) {
+            results.add(Pair.of(Implementation.cachedTopicSet, doSearch(pubOrSub, searchTopic, Implementation.cachedTopicSet)));
+        }
 
         // log.debug("Results: {}", results);
 
@@ -200,7 +244,7 @@ public class PerformanceTests {
                         s2Not1.removeIf(s -> s1.contains(s));
 
                         if (s1Not2.size() > 0) {
-                            log.info("In {} but not in {}: {}", r1.getLeft(), r2.getLeft(),
+                            log.info("In {} but not in {}: {}", r1.getLeft(), r2.getLeft(), s1Not2,
                                     s1Not2.size() > config.getMaxNumTopicsLogged() ?
                                     s1Not2.size() : s1Not2);
                         }
@@ -237,6 +281,15 @@ public class PerformanceTests {
                 matchingTopics = criteriaTopic.getSubscriptions().stream().map(s -> s.getMatchCriteria()).collect(
                         Collectors.toList());
                 break;
+            case subscriptionSet:
+                matchingTopics = subscriptionSet.match(searchTopic);
+                break;
+            case topicSet:
+                matchingTopics = topicSet.match(searchTopic);
+                break;
+            case cachedTopicSet:
+                matchingTopics = cachedTopicSet.match(searchTopic);
+                break;
             default:
                 throw new IllegalStateException("Unsupported implementation " + implementation);
         }
@@ -257,5 +310,5 @@ public class PerformanceTests {
         return matchingTopics;
     }
 
-    private static enum Implementation {subscriptionMatcher, topicAnalyzer, topicMatcher, topicsRepo}
+    private static enum Implementation {subscriptionMatcher, topicAnalyzer, topicMatcher, topicsRepo, subscriptionSet, cachedTopicSet, topicSet}
 }
