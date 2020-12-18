@@ -2,6 +2,7 @@ package com.solace.maas.topicmatcher.igor;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
             if (i == levels.length - 1) {
                 isLeaf = true;
             }
-            TreeLevel toMatch = new TreeLevel(levels[i], parent, isLeaf);
+            TreeLevel toMatch = new TreeLevel(levels[i], parent, isLeaf, false);
             current = parent.getChild(toMatch);
             if (current != null) {
                 current = parent.getChild(toMatch);
@@ -64,6 +65,7 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
         while (!stack.isEmpty()) {
             TreeLevel tmp = stack.pop();
             TreeLevel tmpParent = tmp.getParent();
+            tmpParent.getTopicsFromAllDescendants().remove(topic);
             if (tmp.isLeaf()) {
                 tmpParent.removeChild(tmp);
             } else {
@@ -117,18 +119,19 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                                     .collect(Collectors.toSet()));
                 }
             } else if (levels[index].equals(">")) {
-                matches.addAll(parent.getLeafChildren().stream()
-                        .map(TreeLevel::getFullPath)
-                        .collect(Collectors.toList()));
-                Queue<TreeLevel> q = new LinkedList<>(parent.getNonLeafChildren());
-                while (!q.isEmpty()) {
-                    TreeLevel current = q.remove();
-                    // adding children of a current level
-                    q.addAll(current.getNonLeafChildren());
-                    matches.addAll(current.getLeafChildren().stream()
-                            .map(TreeLevel::getFullPath)
-                            .collect(Collectors.toList()));
-                }
+                matches.addAll(parent.getTopicsFromAllDescendants());
+//                matches.addAll(parent.getLeafChildren().stream()
+//                        .map(TreeLevel::getFullPath)
+//                        .collect(Collectors.toList()));
+//                Queue<TreeLevel> q = new LinkedList<>(parent.getNonLeafChildren());
+//                while (!q.isEmpty()) {
+//                    TreeLevel current = q.remove();
+//                    // adding children of a current level
+//                    q.addAll(current.getNonLeafChildren());
+//                    matches.addAll(current.getLeafChildren().stream()
+//                            .map(TreeLevel::getFullPath)
+//                            .collect(Collectors.toList()));
+//                }
             } else {
                 // matching against regular level, no wildcards detected
                 TreeLevel toMatch = new TreeLevel(levels[index], parent, isLeafLevel);
@@ -170,13 +173,29 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
         private String fullPath;
         // by hash lookup
         private final Map<Integer, TreeLevel> children = new HashMap<>();
+        private final Set<String> topicsFromAllDescendants = new LinkedHashSet<>();
 
         TreeLevel(String name, TreeLevel parent, boolean leaf) {
+            this(name, parent, leaf, true);
+        }
+
+        TreeLevel(String name, TreeLevel parent, boolean leaf, boolean isRegister) {
             this.name = name;
             this.parent = parent;
             this.leaf = leaf;
             if (leaf) {
                 setFullPath();
+                if (isRegister) {
+                    appendTopicToAllAncestors();
+                }
+            }
+        }
+
+        private void appendTopicToAllAncestors() {
+            TreeLevel ancestor = parent;
+            while (ancestor != null) {
+                ancestor.getTopicsFromAllDescendants().add(fullPath);
+                ancestor = ancestor.parent;
             }
         }
 
@@ -298,6 +317,10 @@ public class IgorTopicsRepoTreeImpl implements TopicsRepo {
                 depth = counter;
             }
             return depth;
+        }
+
+        public Set<String> getTopicsFromAllDescendants() {
+            return topicsFromAllDescendants;
         }
     }
 

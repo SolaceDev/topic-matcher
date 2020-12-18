@@ -29,6 +29,10 @@ public class TopicsRepoTester {
 
         List<String> results;
 
+        results = topicsRepo.findMatchingTopics(">");
+        System.out.println(results);
+        assertEquals(results, List.of("a/b/c", "a/b/ccccccc", "a/bvvvvv/c", "a/xxxxx/c", "a/b", "a/b/c/d", "a/b/c/d/e", "a/x", "a", "x"));
+
         results = topicsRepo.findMatchingTopics("a/b/c/d/e");
         System.out.println(results);
         assertEquals(results, List.of("a/b/c/d/e"));
