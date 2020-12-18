@@ -19,7 +19,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @SpringBootTest
@@ -56,7 +62,7 @@ public class PerformanceTests {
     public void init() {
         config.setLargeDataSet(true);
         config.setHardCodedTopics(false);
-        config.setLargeDataSetNumTopics(100_000);
+        config.setLargeDataSetNumTopics(1000_000);
         config.setMaxLevelLength(5); // number of chars on each level
         config.setMaxLevels(8);  // max number of levels
         config.setMinLevels(3);
@@ -231,30 +237,30 @@ public class PerformanceTests {
 
         for (int i = 0; i < results.size(); i++) {
             Pair<Implementation, Collection<String>> r1 = results.get(i);
-                //log.info("\ti: {} {} {}", i, r1.getLeft(), r1.getRight().size());
-                for (int j = i + 1; j < results.size(); j++) {
-                    Pair<Implementation, Collection<String>> r2 = results.get(j);
-                    //log.info("\t\tj: {} {} {}", j, r2.getLeft(), r2.getRight().size());
-                    if (r1.getRight().size() != r2.getRight().size()) {
-                        Set<String> s1 = r1.getRight().stream().collect(Collectors.toSet());
-                        Set<String> s2 = r2.getRight().stream().collect(Collectors.toSet());
-                        Set<String> s1Not2 = new HashSet<>(s1);
-                        s1Not2.removeIf(s -> s2.contains(s));
-                        Set<String> s2Not1 = new HashSet<>(s2);
-                        s2Not1.removeIf(s -> s1.contains(s));
+            //log.info("\ti: {} {} {}", i, r1.getLeft(), r1.getRight().size());
+            for (int j = i + 1; j < results.size(); j++) {
+                Pair<Implementation, Collection<String>> r2 = results.get(j);
+                //log.info("\t\tj: {} {} {}", j, r2.getLeft(), r2.getRight().size());
+                if (r1.getRight().size() != r2.getRight().size()) {
+                    Set<String> s1 = r1.getRight().stream().collect(Collectors.toSet());
+                    Set<String> s2 = r2.getRight().stream().collect(Collectors.toSet());
+                    Set<String> s1Not2 = new HashSet<>(s1);
+                    s1Not2.removeIf(s -> s2.contains(s));
+                    Set<String> s2Not1 = new HashSet<>(s2);
+                    s2Not1.removeIf(s -> s1.contains(s));
 
-                        if (s1Not2.size() > 0) {
-                            log.info("In {} but not in {}: {}", r1.getLeft(), r2.getLeft(), s1Not2,
-                                    s1Not2.size() > config.getMaxNumTopicsLogged() ?
-                                    s1Not2.size() : s1Not2);
-                        }
+                    if (s1Not2.size() > 0) {
+                        log.info("In {} but not in {}: {}", r1.getLeft(), r2.getLeft(), s1Not2,
+                                s1Not2.size() > config.getMaxNumTopicsLogged() ?
+                                        s1Not2.size() : s1Not2);
+                    }
 
-                        if (s2Not1.size() > 0) {
-                            log.info("In {} but not in {}: {}", r2.getLeft(), r1.getLeft(), s2Not1.size() > config.getMaxNumTopicsLogged() ?
-                                     s2Not1.size() : s2Not1);
-                        }
+                    if (s2Not1.size() > 0) {
+                        log.info("In {} but not in {}: {}", r2.getLeft(), r1.getLeft(), s2Not1.size() > config.getMaxNumTopicsLogged() ?
+                                s2Not1.size() : s2Not1);
                     }
                 }
+            }
         }
         results.clear();
         log.info("");

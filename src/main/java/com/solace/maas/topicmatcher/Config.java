@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class Config {
 
     private double appToTopicRatio = 0.3; // chance that an app will be assigned a particular topic
-    private boolean beer = true; // If true, we use the Beer topic generator.
+    private boolean beer = false; // If true, we use the Beer topic generator.
     private double chanceOfGT = 0.2;  // Chance that a leaf node on a subscription will be >
     private double chanceOfPrefix = 0.3; // Chance that a level on a subscription will have a prefixed *
     private double chanceOfStar = 0.3; // Chance that a level on a subscription will be a *
@@ -24,17 +24,29 @@ public class Config {
     private int largeDataSetMaxLevels = 6;
     private int vocabularySize = 10; // number of letters in the alphabet that we use for topics.
 
-    public boolean isBeer() { return beer; }
+    public boolean isBeer() {
+        return beer;
+    }
 
-    public void setBeer(boolean beer) { this.beer = beer; }
+    public void setBeer(boolean beer) {
+        this.beer = beer;
+    }
 
-    public double getChanceOfGT() { return chanceOfGT; }
+    public double getChanceOfGT() {
+        return chanceOfGT;
+    }
 
-    public void setChanceOfGT(double chanceOfGT) { this.chanceOfGT = chanceOfGT; }
+    public void setChanceOfGT(double chanceOfGT) {
+        this.chanceOfGT = chanceOfGT;
+    }
 
-    public double getChanceOfPrefix() { return chanceOfPrefix; }
+    public double getChanceOfPrefix() {
+        return chanceOfPrefix;
+    }
 
-    public void setChanceOfPrefix(double chanceOfPrefix) { this.chanceOfPrefix = chanceOfPrefix; }
+    public void setChanceOfPrefix(double chanceOfPrefix) {
+        this.chanceOfPrefix = chanceOfPrefix;
+    }
 
     public double getChanceOfStar() {
         return chanceOfStar;
@@ -44,9 +56,13 @@ public class Config {
         this.chanceOfStar = chanceOfStar;
     }
 
-    public int getMaxLevelLength() { return maxLevelLength; }
+    public int getMaxLevelLength() {
+        return maxLevelLength;
+    }
 
-    public void setMaxLevelLength(int maxLevelLength) { this.maxLevelLength = maxLevelLength; }
+    public void setMaxLevelLength(int maxLevelLength) {
+        this.maxLevelLength = maxLevelLength;
+    }
 
     public int getMaxLevels() {
         return maxLevels;
@@ -56,9 +72,13 @@ public class Config {
         this.maxLevels = maxLevels;
     }
 
-    public int getMinLevels() { return minLevels; }
+    public int getMinLevels() {
+        return minLevels;
+    }
 
-    public void setMinLevels(int minLevels) { this.minLevels = minLevels; }
+    public void setMinLevels(int minLevels) {
+        this.minLevels = minLevels;
+    }
 
     public int getNumTopics() {
         return numTopics;

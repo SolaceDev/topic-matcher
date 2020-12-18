@@ -33,6 +33,7 @@ public class AlphabetTopicGenerator extends AbstractTopicGenerator {
         return getTopics(PubOrSub.sub);
     }
 
+    @Override
     public List<String> getTopics(PubOrSub pub_or_sub) {
         log.info("Generating {} topics...", pub_or_sub);
 
@@ -64,6 +65,7 @@ public class AlphabetTopicGenerator extends AbstractTopicGenerator {
         return generateTopic(PubOrSub.sub);
     }
 
+    @Override
     public String generateTopic(PubOrSub pub_or_sub) {
         topicStringBuilder.delete(0, topicStringBuilder.length());
         List<String> topicLevels = new ArrayList<>();
