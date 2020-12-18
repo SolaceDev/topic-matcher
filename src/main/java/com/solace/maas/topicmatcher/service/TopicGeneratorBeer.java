@@ -7,39 +7,45 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 //@Component
 public class TopicGeneratorBeer extends AbstractTopicGenerator {
     private Logger log = LoggerFactory.getLogger(TopicGeneratorBeer.class);
-    private StringBuilder stringBuilder = new StringBuilder();
 
-    private BeerTopicGenerator publishingTopicGenerator = new BeerTopicGenerator(0, 0);
-    private BeerTopicGenerator subscriberGenerator = new BeerTopicGenerator(.2, .05);
+    //private BeerTopicGenerator publishingTopicGenerator = new BeerTopicGenerator(0, 0);
+    //private BeerTopicGenerator subscriberGenerator = new BeerTopicGenerator(.2, .05);
+    private MinimalBeerTopicGenerator generator = new MinimalBeerTopicGenerator(.1, 0.0);
 
     @Autowired
     Config config;
 
     @Override
     public String generateTopic(PubOrSub pub_or_sub) {
-        stringBuilder.delete(0, stringBuilder.length());
         List<String> topicLevels;
 
         if (pub_or_sub == PubOrSub.pub) {
-            topicLevels = publishingTopicGenerator.generateOrderParts();
+            topicLevels = generator.generateOrderParts();
         } else {
-            topicLevels = subscriberGenerator.generateOrderParts();
-            topicLevels = subscriberGenerator.generateSubscriptionParts(topicLevels);
+            topicLevels = generator.generateOrderParts();
+            topicLevels = generator.generateSubscriptionParts(topicLevels);
         }
         return String.join("/", topicLevels);
     }
 
     @Override
     public List<String> getTopics(PubOrSub pub_or_sub) {
-        List<String> topics = new ArrayList<>();
+        List<String> topics = generator.generatePublisherTopics();
 
-        for (int i = 0; i < config.getNumTopics(); i++) {
-            topics.add(generateTopic(pub_or_sub));
+        if (pub_or_sub == PubOrSub.sub) {
+            List<String> subs = new LinkedList<>();
+            for (String p : topics) {
+                String s = generator.deriveSubscription(p);
+                log.info(String.format("%s    %s", p, s));
+                subs.add(generator.deriveSubscription(p));
+            }
+            topics = subs;
         }
 
         return topics;

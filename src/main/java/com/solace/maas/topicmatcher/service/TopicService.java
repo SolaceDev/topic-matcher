@@ -105,16 +105,24 @@ public class TopicService {
                 }
             }
         }
+        Application application = new Application();
+        application.setName("Inventory");
+        applicationsById.put("Inventory", application);
+        applications.add(application);
         return applications;
     }
 
     public void analyze() {
         publisherAnalyzer.analyze(PubOrSub.pub, publisherTopics);
         subscriberAnalyzer.analyze(PubOrSub.sub, subscriberTopics);
+        computeAppSubscriptions();
+    }
 
+    public void computeAppSubscriptions() {
         for (Application application : applications) {
             computeAppSubscriptions(application);
         }
+
     }
 
     public List<String> getMatches(PubOrSub pubOrSub, String topicString) {
@@ -153,7 +161,10 @@ public class TopicService {
             analyze = true;
         }
         log.debug("Analyze {}", analyze);
-        if (analyze) analyze();
+        if (analyze) {
+            subscriberAnalyzer.addSubscription(sub);
+            computeAppSubscriptions();
+        }
         return getApplication(appName);
     }
 

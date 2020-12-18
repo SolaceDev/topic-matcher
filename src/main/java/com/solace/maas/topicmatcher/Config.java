@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class Config {
 
     private double appToTopicRatio = 0.3; // chance that an app will be assigned a particular topic
-    private boolean beer = false; // If true, we use the Beer topic generator.
+    private boolean beer = true; // If true, we use the Beer topic generator.
     private double chanceOfGT = 0.2;  // Chance that a leaf node on a subscription will be >
     private double chanceOfPrefix = 0.3; // Chance that a level on a subscription will have a prefixed *
     private double chanceOfStar = 0.3; // Chance that a level on a subscription will be a *
@@ -17,7 +17,7 @@ public class Config {
     private int minLevels = 3;
     private int maxLevels = 6;
     private int maxNumTopicsLogged = 20; // The maximum number of topics that will be dumped into the logger.
-    private int numApplications = 20;
+    private int numApplications = 8;
     private int numTopics = 40;
     private boolean largeDataSet = false; // If true, we generate a large data set and no applications.
     private int largeDataSetNumTopics = 1000; // 15_000_000;

@@ -24,96 +24,93 @@ public class TopicAnalyzer {
         maps.clear();
         prefixMap.clear();
         topicIdToTopicString.clear();
-        int maxLevel = 0;
         List<Topic> topics = new LinkedList<>();
 
         for (String topicString : topicStrings) {
-            Long id = idGenerator.incrementAndGet();
-            Topic topic = new Topic(id, topicString);
-            allTopicStrings.add(topicString);
-            topicIdToTopicString.put(id, topicString);
-            topics.add(topic);
-            int numLevels = topic.getNumLevels();
-            if (numLevels > maxLevel) {
-                maxLevel = numLevels;
-            }
+            addTopic(pubOrSub, topicString);
         }
+    }
 
-        int estimatedValuesPerLevel = topics.size() / maxLevel;
-        float hashLoadFactor = 0.99f;
-        double fudgeFactor = 1.2;
-        int hashCapacity = (int) ((estimatedValuesPerLevel * fudgeFactor) / hashLoadFactor);
-        log.debug("max level: {} estimatedValuesPerLevel: {} hashCapacity: {}", maxLevel, estimatedValuesPerLevel,
-                hashCapacity);
+    public void addSubscription(String topicString) {
+        addTopic(PubOrSub.sub, topicString);
+    }
 
-        for (Topic topic : topics) {
-            int numLevels = topic.getNumLevels();
-            for (int level = 0; level < numLevels; level++) {
-                String levelString = topic.getLevel(level);
-                boolean handledPrefix = false;
+    public void addTopic(PubOrSub pubOrSub, String topicString) {
+        Long id = idGenerator.incrementAndGet();
+        Topic topic = new Topic(id, topicString);
+        allTopicStrings.add(topicString);
+        topicIdToTopicString.put(id, topicString);
+        analyze(pubOrSub, topic);
+    }
 
-                // If these are subscriptions, we need to put the stars with prefixes into their own list.
-                if (pubOrSub == PubOrSub.sub) {
-                    int len = levelString.length();
-                    if (len > 1) {
-                        int starIndex = levelString.indexOf('*');
-                        // If it's the first character we'll just put it in the main map.
-                        // Otherwise...
-                        if (starIndex > 0) {
-                            handledPrefix = true;
-                            String prefixString = levelString.substring(0, starIndex);
-                            int prefixLength = prefixString.length();
-                            log.debug("level: {} prefixString {}", level, prefixString);
+    private void analyze(PubOrSub pubOrSub, Topic topic) {
+        int numLevels = topic.getNumLevels();
+        for (int level = 0; level < numLevels; level++) {
+            String levelString = topic.getLevel(level);
+            boolean handledPrefix = false;
 
-                            Prefix prefix = prefixMap.get(level);
+            // If these are subscriptions, we need to put the stars with prefixes into their own list.
+            if (pubOrSub == PubOrSub.sub) {
+                int len = levelString.length();
+                if (len > 1) {
+                    int starIndex = levelString.indexOf('*');
+                    // If it's the first character we'll just put it in the main map.
+                    // Otherwise...
+                    if (starIndex > 0) {
+                        handledPrefix = true;
+                        String prefixString = levelString.substring(0, starIndex);
+                        int prefixLength = prefixString.length();
+                        log.debug("level: {} prefixString {}", level, prefixString);
 
-                            if (prefix == null) {
-                                prefix = new Prefix();
-                                prefixMap.put(level, prefix);
-                            }
+                        Prefix prefix = prefixMap.get(level);
 
-                            Map<String, Set<Pair<Long, Integer>>> topicMapForLength =
-                                    prefix.getTopics(prefixLength);
-                            if (topicMapForLength == null) {
-                                topicMapForLength = new HashMap<>(hashCapacity, hashLoadFactor);
-                                prefix.setTopics(prefixLength, topicMapForLength);
-                            }
+                        if (prefix == null) {
+                            prefix = new Prefix();
+                            prefixMap.put(level, prefix);
+                        }
+
+                        Map<String, Set<Pair<Long, Integer>>> topicMapForLength =
+                                prefix.getTopics(prefixLength);
+                        if (topicMapForLength == null) {
+                            topicMapForLength = new HashMap<>();
+                            prefix.setTopics(prefixLength, topicMapForLength);
+                        }
 
 
-                            Set<Pair<Long, Integer>> matchingTopics = topicMapForLength.get(prefixString);
+                        Set<Pair<Long, Integer>> matchingTopics = topicMapForLength.get(prefixString);
 
-                            if (matchingTopics == null) {
-                                matchingTopics = new HashSet<>();
-                                topicMapForLength.put(prefixString, matchingTopics);
-                            }
+                        if (matchingTopics == null) {
+                            matchingTopics = new HashSet<>();
+                            topicMapForLength.put(prefixString, matchingTopics);
+                        }
 
-                            matchingTopics.add(Pair.of(topic.getId(), topic.getNumLevels()));
+                        matchingTopics.add(Pair.of(topic.getId(), topic.getNumLevels()));
 
-                            int largestSoFar = prefix.getMaxPrefixLength();
-                            if (prefixLength > largestSoFar) {
-                                prefix.setMaxPrefixLength(prefixLength);
-                            }
+                        int largestSoFar = prefix.getMaxPrefixLength();
+                        if (prefixLength > largestSoFar) {
+                            prefix.setMaxPrefixLength(prefixLength);
                         }
                     }
                 }
+            }
 
-                if (!handledPrefix) {
-                    Map<String, Set<Pair<Long, Integer>>> matchingTopicsAtThisLevel = maps.get(level);
+            if (!handledPrefix) {
+                Map<String, Set<Pair<Long, Integer>>> matchingTopicsAtThisLevel = maps.get(level);
 
-                    if (matchingTopicsAtThisLevel == null) {
-                        matchingTopicsAtThisLevel = new HashMap<>();
-                        maps.put(level, matchingTopicsAtThisLevel);
-                    }
-
-                    Set<Pair<Long, Integer>> listOfTopics = matchingTopicsAtThisLevel.get(levelString);
-                    if (listOfTopics == null) {
-                        listOfTopics = new HashSet<>();
-                        matchingTopicsAtThisLevel.put(levelString, listOfTopics);
-                    }
-                    listOfTopics.add(Pair.of(topic.getId(), topic.getNumLevels()));
+                if (matchingTopicsAtThisLevel == null) {
+                    matchingTopicsAtThisLevel = new HashMap<>();
+                    maps.put(level, matchingTopicsAtThisLevel);
                 }
+
+                Set<Pair<Long, Integer>> listOfTopics = matchingTopicsAtThisLevel.get(levelString);
+                if (listOfTopics == null) {
+                    listOfTopics = new HashSet<>();
+                    matchingTopicsAtThisLevel.put(levelString, listOfTopics);
+                }
+                listOfTopics.add(Pair.of(topic.getId(), topic.getNumLevels()));
             }
         }
+
     }
 
     public List<String> matchFromSubscriber(String topic) {
