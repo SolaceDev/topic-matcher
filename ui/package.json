@@ -10,7 +10,7 @@
   "dependencies": {
     "aurelia-animator-css": "^1.0.4",
     "aurelia-bootstrapper": "^2.3.3",
-    "d3": "^6.2.0"
+    "d3": "^7.9.0"
   },
   "devDependencies": {
     "babel-eslint": "^10.1.0",
